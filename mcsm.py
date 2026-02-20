@@ -17,7 +17,7 @@ import webbrowser
 import hashlib
 import requests
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 
 SERVER_JAR = "minecraft_server.jar"
 MANIFEST_URL = "https://launchermeta.mojang.com/mc/game/version_manifest.json"

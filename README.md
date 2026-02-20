@@ -34,7 +34,7 @@ A robust, cross-platform tool designed to remove the friction from hosting a Min
   </p>
 
   <p>
-    <img alt="Version" src="https://img.shields.io/badge/version-3.0.0-blue.svg" />
+    <img alt="Version" src="https://img.shields.io/badge/version-3.0.1-blue.svg" />
     <img alt="Python" src="https://img.shields.io/badge/python-3.8%2B-yellow.svg" />
     <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg" />
   </p>
@@ -104,7 +104,7 @@ python mcsm.py -nogui
 
 ## ⚙️ Configuration Reference
 
-Changes made to the server logic are primarily driven by the `mcsm.conf` JSON flatfile auto-generated in the application root directory.
+Changes made to the server logic are primarily driven by the `mcsm.conf` configuration file auto-generated in the application root directory.
 
 ```json
 {
@@ -131,7 +131,7 @@ Changes made to the server logic are primarily driven by the `mcsm.conf` JSON fl
 
 ## 🏷️ Versioning
 
-**Current Version:** `3.0.0`
+**Current Version:** `3.0.1`
 
 <div align="center">
   <i>Developed and maintained by <b>UnDadFeated</b></i>
