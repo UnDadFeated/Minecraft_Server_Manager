@@ -2,11 +2,11 @@
 
 # 🎮 Minecraft Server Manager & Installer
 
-**The all-in-one Python utility for deploying, managing, and updating Minecraft servers across Windows and Linux.**
+**The all-in-one Python utility for deploying, managing, and updating Minecraft servers across Windows, Linux, and macOS.**
 
 ![Version](https://img.shields.io/badge/version-2.1-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-yellow.svg)
-![Platform](https://img.shields.io/badge/platform-windows%20%7C%20linux-lightgrey.svg)
+![Platform](https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macos-lightgrey.svg)
 
 </div>
 
@@ -36,7 +36,7 @@ A robust, cross-platform tool designed to remove the friction from hosting a Min
   <p>
     <img alt="Version" src="https://img.shields.io/badge/version-3.0.1-blue.svg" />
     <img alt="Python" src="https://img.shields.io/badge/python-3.8%2B-yellow.svg" />
-    <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey.svg" />
+    <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" />
   </p>
 
 </div>
@@ -62,7 +62,7 @@ A robust, cross-platform tool designed to remove the friction from hosting a Min
 
 | Requirement | Details |
 | :--- | :--- |
-| **Operating System** | Windows or Linux |
+| **Operating System** | Windows, Linux, or macOS |
 | **Memory** | At least `2G` allocated to the server heap (`4G+` recommended for modded) |
 | **Java Environment** | **Java 17 or Java 21** depending on your Minecraft version. |
 | **Python** | Python 3.8 or higher |
