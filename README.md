@@ -50,8 +50,9 @@ START_BATCH_FILE = 'Manual_Run.bat' # The default startup script name
 
 ## 📖 Usage Guide
 
-### 1. Install Prerequisites
+### 1. Download & Install Prerequisites
 
+Clone this repository or download the source code as a ZIP file.
 Ensure you have Python installed, then install the required `requests` library:
 
 ```bash
@@ -60,7 +61,7 @@ pip install requests
 
 ### 2. Execute the Tool
 
-Run the script to begin management:
+Since there are no compiled releases, simply run the Python script from the source directory to begin management:
 
 ```bash
 python MS_Update.py
@@ -68,6 +69,8 @@ python MS_Update.py
 
 - **If no server is detected:** The interactive **Installer Wizard** will launch.
 - **If an existing server is found:** The tool will check for **Vanilla Updates** or ensure **Modded Servers** boot safely.
+
+> **Note:** Once installed, users typically utilize the generated `Manual_Run.bat` (or `.sh` equivalent) to start their servers directly without needing to re-invoke the Python installer loop each time.
 
 ---
 
