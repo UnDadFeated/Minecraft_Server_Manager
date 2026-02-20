@@ -1,32 +1,4 @@
 <div align="center">
-
-# 🎮 Minecraft Server Manager & Installer
-
-**The all-in-one Python utility for deploying, managing, and updating Minecraft servers across Windows, Linux, and macOS.**
-
-![Version](https://img.shields.io/badge/version-2.1-blue.svg)
-![Python](https://img.shields.io/badge/python-3.8+-yellow.svg)
-![Platform](https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macos-lightgrey.svg)
-
-</div>
-
----
-
-A robust, cross-platform tool designed to remove the friction from hosting a Minecraft server. Whether you are running a lightweight Vanilla instance or a heavily modded Forge/NeoForge network, this utility ensures your server stays updated, backed up, and securely managed.
-
----
-
-## ✨ Features
-
-### 🛠️ Smart Deployment & Updates
-
-- **Interactive Installer:** Automatically detects missing server components and provisions a clean environment with an easy-to-use wizard.
-- **Zero-Touch Updates:** Interfaces directly with Mojang's API manifest to seamlessly upgrade Vanilla servers to the latest release.
-
-### 🧩 Multi-Loader Architecture
-
-- **Vanilla Integration:** Full support for version matching and direct jar downloading.
-- **Forge & NeoForge Support:** Handles complex modded and third-party installers while enforcing **Safe Update Protection** to guarantee your mod lists and custom configs are never overwritten.
   <h1>🎮 Minecraft Server Manager</h1>
 
   <p>
