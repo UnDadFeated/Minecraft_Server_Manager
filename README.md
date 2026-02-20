@@ -1,6 +1,6 @@
 # Minecraft Server Updater & Installer
 
-**Version:** 2.0  
+**Version:** 2.1  
 **Author:** UnDadFeated  
 
 A powerful, cross-platform Python utility designed to streamline the installation, updating, and management of Minecraft servers. This tool supports **Windows** and **Linux** environments and is compatible with **Vanilla**, **Forge**, and **NeoForge** server setups.

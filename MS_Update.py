@@ -17,7 +17,7 @@ A utility to check for Minecraft server updates, backup data,
 and auto-update the server jar file. Also supports clean installations.
 
 Author: UnDadFeated
-Version: 2.0
+Version: 2.1
 """
 
 # CONFIGURATION
