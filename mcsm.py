@@ -273,7 +273,23 @@ class MinecraftUpdaterCore:
 
     def run_installer_wizard_console(self):
         self.log("=== Minecraft Server Installer ===")
-        print("Select Server Installer Type:\n1) Vanilla\n2) Forge\n3) NeoForge")
+        # Automatic Snapshot prompt
+        auto_snap = input("No server detected. Do you want to automatically download the newest Vanilla Snapshot? (y/n): ").strip().lower()
+        if auto_snap == 'y':
+            self.config["update_to_snapshot"] = True
+            save_config(self.config)
+            try:
+                with open(SERVER_TYPE_FILE, "w") as f: f.write("Vanilla")
+            except: pass
+            
+            self.log("Installing latest Vanilla Snapshot...")
+            if self.update_server(is_initial=True):
+                 self.log("Accepting EULA...")
+                 with open("eula.txt", "w") as f: f.write("eula=true\n")
+                 return True
+            return False
+
+        print("\nSelect Server Installer Type:\n1) Vanilla\n2) Forge\n3) NeoForge")
         choice = input("Choice (1-3): ").strip()
         server_type = "Vanilla"
         if choice == '2': server_type = "Forge"
@@ -284,6 +300,9 @@ class MinecraftUpdaterCore:
         except: pass
 
         if server_type == "Vanilla":
+            self.config["update_to_snapshot"] = False
+            save_config(self.config)
+
             if self.update_server(is_initial=True):
                  self.log("Accepting EULA...")
                  with open("eula.txt", "w") as f: f.write("eula=true\n")
@@ -724,29 +743,42 @@ def run_gui_mode():
             ttk.Label(inst_win, text="Welcome to Minecraft Server Manager!", font=("Arial", 12, "bold")).pack(pady=10)
             ttk.Label(inst_win, text="No server detected. Please choose a flavor to install:").pack(pady=5)
 
-            def install(flav):
+            def install_auto(snapshot=False):
+                try: 
+                    with open(SERVER_TYPE_FILE, "w") as f: f.write("Vanilla")
+                except: pass
+                self.config["update_to_snapshot"] = snapshot
+                self.save()
+                
+                self.core.log(f"Installing automatic Vanilla {'Snapshot' if snapshot else 'Release'}...")
+                if self.core.update_server(is_initial=True):
+                     with open("eula.txt", "w") as f: f.write("eula=true\n")
+                     self.core.log("Installation Complete. You can start the server.")
+                inst_win.destroy()
+
+            def install_manual(flav):
                 try: 
                     with open(SERVER_TYPE_FILE, "w") as f: f.write(flav)
                 except: pass
 
-                if flav == "Vanilla":
-                    self.core.log("Installing latest Vanilla Server...")
-                    if self.core.update_server(is_initial=True):
-                         with open("eula.txt", "w") as f: f.write("eula=true\n")
-                         self.core.log("Installation Complete. You can start the server.")
-                else:
-                    url = simpledialog.askstring("Installer URL", f"Paste the full direct download URL for the {flav} installer (.jar) from their official website:")
-                    if url:
-                         if self.core.download_file(url, "installer.jar"):
-                              self.core.log(f"Running {flav} Installer...")
-                              subprocess.Popen(['java', '-jar', 'installer.jar', '--installServer']).wait()
-                              with open("eula.txt", "w") as f: f.write("eula=true\n")
-                              self.core.log("Modded installation complete.")
+                url = simpledialog.askstring("Installer URL", f"Paste the full direct download URL for the {flav} installer (.jar) from their official website:")
+                if url:
+                     if self.core.download_file(url, "installer.jar"):
+                          self.core.log(f"Running {flav} Installer...")
+                          subprocess.Popen(['java', '-jar', 'installer.jar', '--installServer']).wait()
+                          with open("eula.txt", "w") as f: f.write("eula=true\n")
+                          self.core.log("Modded installation complete.")
                 inst_win.destroy()
 
-            ttk.Button(inst_win, text="Vanilla (Always up to date)", command=lambda: install("Vanilla")).pack(fill=tk.X, padx=50, pady=5)
-            ttk.Button(inst_win, text="Forge", command=lambda: install("Forge")).pack(fill=tk.X, padx=50, pady=5)
-            ttk.Button(inst_win, text="NeoForge", command=lambda: install("NeoForge")).pack(fill=tk.X, padx=50, pady=5)
+            # Automatic Prompt immediately if Vanilla is desired
+            if messagebox.askyesno("No Server Found", "No server jar was found.\n\nWould you like to automatically download the newest Vanilla Snapshot?\n(Selecting 'No' allows you to choose Vanilla Release, Forge, or NeoForge.)"):
+                inst_win.destroy()
+                install_auto(snapshot=True)
+                return
+
+            ttk.Button(inst_win, text="Vanilla Release (Automatic)", command=lambda: install_auto(snapshot=False)).pack(fill=tk.X, padx=50, pady=5)
+            ttk.Button(inst_win, text="Forge", command=lambda: install_manual("Forge")).pack(fill=tk.X, padx=50, pady=5)
+            ttk.Button(inst_win, text="NeoForge", command=lambda: install_manual("NeoForge")).pack(fill=tk.X, padx=50, pady=5)
 
         def send_command_ui(self):
             cmd = self.input_var.get().strip()
