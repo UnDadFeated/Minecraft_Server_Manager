@@ -1,80 +1,113 @@
-# Minecraft Server Updater & Installer
+<div align="center">
 
-**Version:** 2.1  
-**Author:** UnDadFeated  
+# 🎮 Minecraft Server Updater & Installer
 
-A powerful, cross-platform Python utility designed to streamline the installation, updating, and management of Minecraft servers. This tool supports **Windows** and **Linux** environments and is compatible with **Vanilla**, **Forge**, and **NeoForge** server setups.
+**The all-in-one Python utility for deploying, managing, and updating Minecraft servers across Windows and Linux.**
 
----
+![Version](https://img.shields.io/badge/version-2.1-blue.svg)
+![Python](https://img.shields.io/badge/python-3.8+-yellow.svg)
+![Platform](https://img.shields.io/badge/platform-windows%20%7C%20linux-lightgrey.svg)
 
-## 🚀 Key Features
-
-### 🛠️ Dual-Mode Functionality
-
-- **Smart Installation Wizard:** Automatically detects missing server components and guides you through a clean, guided installation process.
-- **Automated Updates:** Seamlessly checks Mojang's version manifest to keep your Vanilla server running the latest version.
-
-### 💻 Cross-Platform Compatibility
-
-- **Windows:** Installs dynamically to your chosen directory.
-- **Linux:** Automatically provisions to `/home/{username}/MCServer/`.
-
-### 🧩 Comprehensive Loader Support
-
-- **Vanilla Setup:** Features automatic version matching and downloading directly from official sources.
-- **Forge & NeoForge Integration:** Supports robust installer execution while implementing **Safe Update Protection** to prevent unintended data loss or broken mods.
-
-### ⚙️ Intelligent Dependency Management
-
-- **Java Version Verification:** Automatically validates the presence of the correct Java Runtime Environment (Java 8, 16, 17, or 21) based on the target Minecraft version.
-- **EULA & Script Generation:** Automatically accepts the Minecraft EULA and generates OS-specific startup scripts (`Manual_Run.bat` or `Manual_Run.sh`).
-
-### 📦 Automated Backups
-
-- Safely archives the current `minecraft_server.jar` and `world` directory before performing any major version upgrades or operations.
+</div>
 
 ---
 
-## ⚙️ Configuration
+A robust, cross-platform tool designed to remove the friction from hosting a Minecraft server. Whether you are running a lightweight Vanilla instance or a heavily modded Forge/NeoForge network, this utility ensures your server stays updated, backed up, and securely managed.
 
-You can customize the tool's behavior by editing the constants at the top of `MS_Update.py`:
+---
 
-```python
-UPDATE_TO_SNAPSHOT = False    # Set to True to allow updates to developmental snapshots (Vanilla only)
-BACKUP_DIR = 'world_backups'  # Directory for storing world archives
-SERVER_JAR = 'minecraft_server.jar' # The expected name of your server executable
-START_BATCH_FILE = 'Manual_Run.bat' # The default startup script name
+## ✨ Features
+
+### 🛠️ Smart Deployment & Updates
+
+- **Interactive Installer:** Automatically detects missing server components and provisions a clean environment with an easy-to-use wizard.
+- **Zero-Touch Updates:** Interfaces directly with Mojang's API manifest to seamlessly upgrade Vanilla servers to the latest release.
+
+### 🧩 Multi-Loader Architecture
+
+- **Vanilla Integration:** Full support for version matching and direct jar downloading.
+- **Forge & NeoForge Support:** Handles complex modded and third-party installers while enforcing **Safe Update Protection** to guarantee your mod lists and custom configs are never overwritten.
+
+### ⚙️ System Intelligence
+
+- **Java Validation:** Automatically checks your system's environment to ensure the correct Java Runtime Environment (Java 8, 16, 17, or 21) is installed based on the target Minecraft version constraints.
+- **Automated Provisioning:** Seamlessly accepts the Minecraft EULA and generates OS-specific startup scripts (`Manual_Run.bat` or `Manual_Run.sh`) pre-configured with optimized memory flags.
+
+### 🛡️ Built-In Resilience
+
+- **Automated Backups:** Safely archives the existing `minecraft_server.jar` and creates timestamped copies of your `world` directory before executing major version upgrades.
+- **Graceful Termination:** Safely halts running server processes (`wmic` on Windows, `pkill` on Linux) before modifying system files.
+
+---
+
+## 🚀 Getting Started
+
+To ensure maximum compatibility and easy configuration, this tool is distributed as a source script. There are no compiled executables to download.
+
+### 1. Prerequisites & Environment Setup
+
+Ensure you have [Python 3.8+](https://www.python.org/downloads/) installed.
+
+Clone this repository to your local machine:
+
+```bash
+git clone https://github.com/Ascendin81/Minecraft_Server_Updater.git
+cd Minecraft_Server_Updater
 ```
 
----
-
-## 📖 Usage Guide
-
-### 1. Download & Install Prerequisites
-
-Clone this repository or download the source code as a ZIP file.
-Ensure you have Python installed, then install the required `requests` library:
+Install the required dependencies:
 
 ```bash
 pip install requests
 ```
 
-### 2. Execute the Tool
+### 2. Initializing the Manager
 
-Since there are no compiled releases, simply run the Python script from the source directory to begin management:
+Run the core script to begin:
 
 ```bash
 python MS_Update.py
 ```
 
-- **If no server is detected:** The interactive **Installer Wizard** will launch.
-- **If an existing server is found:** The tool will check for **Vanilla Updates** or ensure **Modded Servers** boot safely.
+- **Clean Environments:** The interactive **Installer Wizard** will take over, allowing you to select your server type, OS path, and version.
+- **Existing Environments:** The tool will analyze your current `minecraft_server.jar` checksum against Mojang's API, backup your world, and perform an update if one is available.
 
-> **Note:** Once installed, users typically utilize the generated `Manual_Run.bat` (or `.sh` equivalent) to start their servers directly without needing to re-invoke the Python installer loop each time.
+### 3. Routine Operation
+>
+> [!NOTE]
+> Once the installation or update process is complete, you do not need to run `MS_Update.py` every time you want to play.
+> Instead, navigate to your server directory and execute the generated **`Manual_Run.bat`** (Windows) or **`Manual_Run.sh`** (Linux) to boot your server quickly and safely.
+
+---
+
+## 🔧 Configuration Options
+
+Advanced users can customize the tool's behavior by modifying the constants at the top of the `MS_Update.py` script:
+
+```python
+# Enable if you want to automatically download the latest Mojang testing snapshots
+UPDATE_TO_SNAPSHOT = False    
+
+# Directory where timestamped world archives will be placed
+BACKUP_DIR = 'world_backups'  
+
+# The target binary the script interfaces with for updates and process management
+SERVER_JAR = 'minecraft_server.jar' 
+
+# The name of the automated start script generated during installation
+START_BATCH_FILE = 'Manual_Run.bat' 
+```
 
 ---
 
 ## ⚠️ Important Considerations
->
+
 > [!WARNING]
-> This script utilizes OS-level process management (`wmic` on Windows, `pkill` on Linux) to gracefully terminate the server preceding an update. Ensure this automated shutdown behavior aligns with your operational environment to prevent unintended interruptions.
+> **Process Management:** This script utilizes OS-level process management to cleanly terminate the server prior to updates. Ensure this behavior aligns with your environment, particularly if hosting multiple instances on a single machine.
+>
+> **Modded Environments:** The updater logic skips automatic jar replacements for Forge/NeoForge to prevent fatal data loss. It will instead boot the server normally.
+
+---
+<div align="center">
+  <i>Developed and maintained by <b>UnDadFeated</b></i>
+</div>
