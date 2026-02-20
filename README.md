@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎮 Minecraft Server Updater & Installer
+# 🎮 Minecraft Server Manager & Installer
 
 **The all-in-one Python utility for deploying, managing, and updating Minecraft servers across Windows and Linux.**
 
