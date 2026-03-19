@@ -25,7 +25,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "4.1.2"
+__version__ = "4.1.3"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -820,7 +820,7 @@ def run_gui_mode():
             style.configure("TLabelframe.Label", background=bg, foreground=accent, font=("Segoe UI", 8, "bold"))
             style.configure("TButton", padding=2, font=("Segoe UI", 8))
             style.configure("TCheckbutton", background=bg, foreground=fg, font=("Segoe UI", 8))
-            style.configure("TEntry", fieldbackground=bg if self.is_dark else "#ffffff", foreground=fg, bordercolor=silver, font=("Segoe UI", 8))
+            style.configure("TEntry", fieldbackground="#ffffff", foreground="#000000", bordercolor=silver, font=("Segoe UI", 8))
             
             # Colored Action Buttons
             style.configure("StartPulse.TButton", foreground="#107C10" if not self.is_dark else "#23D18B", font=("Segoe UI", 8, "bold"))
