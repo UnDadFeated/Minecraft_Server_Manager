@@ -25,7 +25,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "4.1.1"
+__version__ = "4.1.2"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -663,12 +663,15 @@ def run_gui_mode():
 
             dsc = ttk.LabelFrame(rows, text="Discord"); dsc.pack(side=tk.LEFT, padx=5, fill=tk.Y)
             ttk.Checkbutton(dsc, text="Enable", variable=self.var_discord, command=self.save).pack(anchor="w")
-            ttk.Label(dsc, text="Webhook:").pack(anchor="w")
-            ttk.Entry(dsc, textvariable=self.var_discord_url, width=20).pack(pady=1)
-            ttk.Label(dsc, text="Bot Token:").pack(anchor="w")
-            ttk.Entry(dsc, textvariable=self.var_discord_token, width=20, show="*").pack(pady=1)
-            ttk.Label(dsc, text="Channel ID:").pack(anchor="w")
-            ttk.Entry(dsc, textvariable=self.var_discord_chan, width=20).pack(pady=1)
+            
+            def add_row(lbl, var, secure=False):
+                f = ttk.Frame(dsc); f.pack(fill=tk.X, pady=1)
+                ttk.Label(f, text=lbl, width=8).pack(side=tk.LEFT)
+                ttk.Entry(f, textvariable=var, width=12, show="*" if secure else None).pack(side=tk.LEFT, fill=tk.X, expand=True)
+            
+            add_row("Webhook:", self.var_discord_url)
+            add_row("Token:", self.var_discord_token, True)
+            add_row("Channel:", self.var_discord_chan)
 
             r_cont = ttk.Frame(cfg_frame); r_cont.pack(side=tk.RIGHT, padx=5)
             
