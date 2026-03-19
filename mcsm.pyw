@@ -25,9 +25,9 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "3.9.1"
+__version__ = "4.0.1"
 
-JAVA_VERSION_REQ = 17  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
+JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
 MANIFEST_URL = "https://launchermeta.mojang.com/mc/game/version_manifest_v2.json"
 IS_WINDOWS = platform.system() == "Windows"
@@ -193,7 +193,9 @@ class MinecraftUpdaterCore:
         async def restart_server_bot(ctx):
             await ctx.send("🔄 Restarting server...")
             self.stop_server()
-            threading.Timer(5.0, self.start_server_sequence).start()
+            t = threading.Timer(5.0, self.start_server_sequence)
+            t.daemon = True
+            t.start()
 
         def run_bot():
             try:
@@ -417,12 +419,26 @@ except Exception as e:
     def send_discord_webhook(self, message):
         if not self.config.get("enable_discord", False): return
         url = self.config.get("discord_webhook", "").strip()
-        if not url: return
-        try:
-            data = json.dumps({"content": message}).encode()
-            req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
-            with urllib.request.urlopen(req, timeout=10): pass
-        except: pass
+        token = self.config.get("discord_token", "").strip()
+        channel = self.config.get("discord_channel_id", 0)
+
+        if url:
+            try:
+                data = json.dumps({"content": message}).encode()
+                req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json', 'User-Agent': 'MCSM-Bot'})
+                with urllib.request.urlopen(req, timeout=10): pass
+            except: pass
+        elif token and channel:
+            try:
+                api_url = f"https://discord.com/api/v10/channels/{channel}/messages"
+                data = json.dumps({"content": message}).encode()
+                req = urllib.request.Request(api_url, data=data, headers={
+                    'Authorization': f'Bot {token}',
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'MCSM-Bot'
+                })
+                with urllib.request.urlopen(req, timeout=10): pass
+            except: pass
 
     def start_server_sequence(self):
         threading.Thread(target=self._start_server_thread, daemon=True).start()
@@ -520,7 +536,9 @@ except Exception as e:
 
     def restart_server(self):
         self.stop_server()
-        threading.Timer(5.0, self.start_server_sequence).start()
+        timer = threading.Timer(5.0, self.start_server_sequence)
+        timer.daemon = True
+        timer.start()
 
     def stop_server(self):
         self.stop_requested = True
@@ -545,13 +563,17 @@ except Exception as e:
     def _schedule_restart(self):
         hrs = float(self.config.get("restart_interval", 12))
         self.restart_timer = threading.Timer(hrs * 3600, self.restart_server)
+        self.restart_timer.daemon = True
         self.restart_timer.start()
 
 def run_console_mode():
     def console_logger(msg, tag=None):
         ts = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
         if not console: print(f"{ts} {msg}")
-        with open(LOG_FILE, "a", encoding="utf-8") as f: f.write(f"{ts} {msg}\n")
+        try:
+            with open(LOG_FILE, "a", encoding="utf-8") as f:
+                f.write(f"{ts} {msg}\n")
+        except OSError: pass
     config = load_config()
     core = MinecraftUpdaterCore(console_logger, input_callback=input, config=config)
     core.start_server_sequence()
@@ -587,6 +609,7 @@ def run_gui_mode():
             self.var_memory = tk.StringVar(value=self.config.get("server_memory", "4G"))
             self.var_max_bkp = tk.StringVar(value=str(self.config.get("max_backups", 3)))
             self.var_start_win = tk.BooleanVar(value=self.config.get("start_with_windows", False))
+            self.var_mgr_upd = tk.BooleanVar(value=self.config.get("manager_auto_update", True))
             
             self.status_var = tk.StringVar(value="Status: Stopped")
             self.uptime_var = tk.StringVar(value="Uptime: 00:00:00")
@@ -640,7 +663,12 @@ def run_gui_mode():
 
             dsc = ttk.LabelFrame(rows, text="Discord"); dsc.pack(side=tk.LEFT, padx=10, fill=tk.Y)
             ttk.Checkbutton(dsc, text="Enable", variable=self.var_discord, command=self.save).pack(anchor="w")
-            ttk.Entry(dsc, textvariable=self.var_discord_url, width=15).pack(pady=1)
+            ttk.Label(dsc, text="Webhook:").pack(anchor="w")
+            ttk.Entry(dsc, textvariable=self.var_discord_url, width=20).pack(pady=1)
+            ttk.Label(dsc, text="Bot Token:").pack(anchor="w")
+            ttk.Entry(dsc, textvariable=self.var_discord_token, width=20, show="*").pack(pady=1)
+            ttk.Label(dsc, text="Channel ID:").pack(anchor="w")
+            ttk.Entry(dsc, textvariable=self.var_discord_chan, width=20).pack(pady=1)
 
             r_cont = ttk.Frame(cfg_frame); r_cont.pack(side=tk.RIGHT)
             self.btn_start = ttk.Button(r_cont, text="START", command=self.start_server, width=15); self.btn_start.pack()
@@ -661,6 +689,8 @@ def run_gui_mode():
             footer = ttk.Frame(self.root); footer.pack(fill=tk.X, padx=10, pady=5)
             ttk.Button(footer, text="Toggle Theme", command=self.toggle_theme).pack(side=tk.LEFT)
             ttk.Checkbutton(footer, text="Start with Windows", variable=self.var_start_win, command=self.save_win).pack(side=tk.LEFT, padx=10)
+            ttk.Checkbutton(footer, text="Auto-Update Manager", variable=self.var_mgr_upd, command=self.save).pack(side=tk.LEFT, padx=10)
+            ttk.Button(footer, text="☕ Support the Development", command=lambda: webbrowser.open("https://www.paypal.me/jscheema/5")).pack(side=tk.RIGHT, padx=10)
 
         def save(self):
             self.config.update({
@@ -670,7 +700,11 @@ def run_gui_mode():
                 "enable_discord": self.var_discord.get(), "enable_auto_restart": self.var_restart.get(),
                 "enable_schedule": self.var_schedule.get(), "discord_webhook": self.var_discord_url.get(),
                 "restart_interval": self.var_sch_time.get(), "server_memory": self.var_memory.get(),
-                "max_backups": int(self.var_max_bkp.get()) if self.var_max_bkp.get().isdigit() else 3, "start_with_windows": self.var_start_win.get()
+                "max_backups": int(self.var_max_bkp.get()) if self.var_max_bkp.get().isdigit() else 3,
+                "start_with_windows": self.var_start_win.get(), "manager_auto_update": self.var_mgr_upd.get(),
+                "dark_mode": self.is_dark,
+                "discord_token": self.var_discord_token.get(),
+                "discord_channel_id": int(self.var_discord_chan.get()) if self.var_discord_chan.get().isdigit() else 0
             })
             save_config(self.config)
 
@@ -705,7 +739,10 @@ def run_gui_mode():
         def log_q(self, m, t=None):
             self.log_queue.put((m, t))
             if self.var_logging.get():
-                with open(LOG_FILE, "a", encoding="utf-8") as f: f.write(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] {m}\n")
+                try:
+                    with open(LOG_FILE, "a", encoding="utf-8") as f:
+                        f.write(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] {m}\n")
+                except OSError: pass
 
         def log_loop(self):
             while not self.log_queue.empty():
@@ -715,16 +752,59 @@ def run_gui_mode():
             self.root.after(100, self.log_loop)
 
         def upd_stats(self, s):
-            self.status_var.set(f"Status: {s.get('state', 'Stopped')}")
-            self.uptime_var.set(f"Uptime: {s.get('uptime', '00:00:00')}")
+            self.root.after(0, lambda: self.status_var.set(f"Status: {s.get('state', 'Stopped')}"))
+            self.root.after(0, lambda: self.uptime_var.set(f"Uptime: {s.get('uptime', '00:00:00')}"))
             if s.get("state") == "Stopped":
-                self.btn_start.config(state=tk.NORMAL); self.btn_stop.config(state=tk.DISABLED)
+                self.root.after(0, lambda: self.btn_start.config(state=tk.NORMAL))
+                self.root.after(0, lambda: self.btn_stop.config(state=tk.DISABLED))
 
         def apply_theme(self):
+            theme = "dark" if self.is_dark else "light"
+            # Antigravity Palette
+            bg = "#181818" if self.is_dark else "#fdfdfd"
+            fg = "#e0e0e0" if self.is_dark else "#202020"
+            silver = "#707070" if self.is_dark else "#dcdcdc" # 1px silver lines feel
+            accent = "#3498db" if self.is_dark else "#2980b9"
+            
+            style = ttk.Style()
             try:
                 import sv_ttk
-                sv_ttk.set_theme("dark" if self.is_dark else "light")
-            except: pass
+                sv_ttk.set_theme(theme)
+            except Exception:
+                try:
+                    style.theme_use("clam")
+                except Exception:
+                    pass
+            
+            # Custom Antigravity Polish (Grey theme + 1px silver lines)
+            style.configure(".", background=bg, foreground=fg, font=("Segoe UI", 10))
+            style.configure("TFrame", background=bg)
+            # 1px Silver line effect on LabelFrames
+            style.configure("TLabelframe", background=bg, foreground=fg, bordercolor=silver, borderwidth=1)
+            style.configure("TLabelframe.Label", background=bg, foreground=fg)
+            style.configure("TButton", padding=5)
+            style.configure("TCheckbutton", background=bg, foreground=fg)
+            style.configure("TEntry", fieldbackground=bg if self.is_dark else "#ffffff", foreground=fg, bordercolor=silver)
+            
+            self.root.configure(bg=bg)
+            self.console.config(bg="#0c0c0c" if self.is_dark else "#fcfcfc", 
+                                fg="#d4d4d4" if self.is_dark else "#1a1a1a",
+                                insertbackground=fg,
+                                highlightbackground=silver, 
+                                highlightthickness=1)
+            
+            style.map("TButton", background=[("active", accent)], foreground=[("active", "#ffffff")])
+            
+            # Explicitly recurse and update built-in tk widgets if any
+            def _apply_to_child(w):
+                try: 
+                    if isinstance(w, tk.Label): w.configure(bg=bg, fg=fg)
+                    elif isinstance(w, (tk.Frame, tk.Canvas)): w.configure(bg=bg)
+                    elif isinstance(w, tk.Button): w.configure(bg=bg, fg=fg)
+                except: pass
+                for child in w.winfo_children(): _apply_to_child(child)
+            
+            _apply_to_child(self.root)
 
         def toggle_theme(self):
             self.is_dark = not self.is_dark; self.apply_theme(); self.save()
