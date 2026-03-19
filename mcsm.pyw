@@ -25,7 +25,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "4.1.0"
+__version__ = "4.1.1"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -698,6 +698,10 @@ def run_gui_mode():
             st_f = ttk.Frame(act_f); st_f.pack(pady=2)
             ttk.Label(st_f, textvariable=self.status_var, font=("Consolas", 8, "bold")).pack(side=tk.LEFT, padx=5)
             ttk.Label(st_f, textvariable=self.uptime_var, font=("Consolas", 8)).pack(side=tk.LEFT, padx=5)
+            
+            stat_row = ttk.Frame(act_f); stat_row.pack()
+            ttk.Label(stat_row, textvariable=self.cpu_var, font=("Consolas", 8), foreground="gray").pack(side=tk.LEFT, padx=5)
+            ttk.Label(stat_row, textvariable=self.ram_var, font=("Consolas", 8), foreground="gray").pack(side=tk.LEFT, padx=5)
 
             self.console = scrolledtext.ScrolledText(self.root, font=("Consolas", 9), state=tk.DISABLED, bg="#101010", fg="#d4d4d4", borderwidth=0, highlightthickness=0)
             self.console.pack(fill=tk.BOTH, expand=True, padx=10, pady=2)
@@ -775,6 +779,14 @@ def run_gui_mode():
         def upd_stats(self, s):
             self.root.after(0, lambda: self.status_var.set(f"Status: {s.get('state', 'Stopped')}"))
             self.root.after(0, lambda: self.uptime_var.set(f"Uptime: {s.get('uptime', '00:00:00')}"))
+            
+            try:
+                cpu = psutil.cpu_percent(interval=None)
+                ram = psutil.virtual_memory().percent
+                self.root.after(0, lambda: self.cpu_var.set(f"CPU: {cpu}%"))
+                self.root.after(0, lambda: self.ram_var.set(f"RAM: {ram}%"))
+            except: pass
+
             if s.get("state") == "Stopped":
                 self.root.after(0, lambda: self.btn_start.config(state=tk.NORMAL))
                 self.root.after(0, lambda: self.btn_stop.config(state=tk.DISABLED))
