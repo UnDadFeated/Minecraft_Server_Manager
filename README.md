@@ -6,7 +6,7 @@
   </p>
 
   <p>
-    <img alt="Version" src="https://img.shields.io/badge/version-3.1.0-blue.svg" />
+    <img alt="Version" src="https://img.shields.io/badge/version-3.9.0-blue.svg" />
     <img alt="Python" src="https://img.shields.io/badge/python-3.8%2B-yellow.svg" />
     <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" />
   </p>
@@ -25,6 +25,7 @@
 - 💬 **Discord Integration:** Features integrated Discord Webhooks to instantly alert your community on server status changes (Startup, Shutdown, Crashes). Includes a threaded bot for chat commands (`!start`, `!stop`, `!restart`, `!status`).
 - 📡 **Background Polling:** Periodically scans for new official Minecraft server versions, downloading and replacing engine files as necessary.
 - 🔧 **Modded Support:** Fully compatible with Forge and NeoForge installations.
+- 🚫 **Smart Mod Detection:** Automatically detects if mods are installed and can prevent unexpected Vanilla updates that might break your modded environment.
 
 ---
 
@@ -44,7 +45,7 @@
 ## 🚀 Installation Guide
 
 1. **Clone the Repository:** Download the repository source code.
-2. **Locate Server Path:** Move the script `mcsm.py` into the root directory where you intend to run (or are currently running) your Minecraft server.
+2. **Locate Server Path:** Move the script `mcsm.pyw` into the root directory where you intend to run (or are currently running) your Minecraft server.
 3. **Run Application:** Launch the program via your command line interface.
 
 ---
@@ -56,7 +57,7 @@
 Running the script parameter-free initializes the Graphical User Interface.
 
 ```bash
-python mcsm.py
+python mcsm.pyw
 ```
 
 - **Real-time Output:** View live stdout and stderr streams directly in the application pane.
@@ -69,7 +70,7 @@ python mcsm.py
 Targeting headless environments, the application can bypass the `tkinter` dependency completely. All required values are read directly from `mcsm.conf` upon boot sequence.
 
 ```bash
-python mcsm.py -nogui
+python mcsm.pyw -nogui
 ```
 
 ---
@@ -93,7 +94,8 @@ Changes made to the server logic are primarily driven by the `mcsm.conf` configu
   "discord_webhook": "YOUR_WEBHOOK_URL",
   "discord_token": "YOUR_BOT_TOKEN",
   "discord_channel_id": 1234567890,
-  "update_to_snapshot": false
+  "update_to_snapshot": false,
+  "modded_do_not_update": true
 }
 ```
 
@@ -103,7 +105,7 @@ Changes made to the server logic are primarily driven by the `mcsm.conf` configu
 
 ## 🏷️ Versioning
 
-**Current Version:** `3.1.0`
+**Current Version:** `3.9.0`
 
 <div align="center">
   <i>Developed and maintained by <b>UnDadFeated</b></i>
