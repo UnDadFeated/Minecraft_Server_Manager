@@ -25,7 +25,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "3.9.0"
+__version__ = "3.9.1"
 
 JAVA_VERSION_REQ = 17  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -244,7 +244,7 @@ class MinecraftUpdaterCore:
         """Queries Mojang for the latest server version info."""
         try:
             req = urllib.request.Request(MANIFEST_URL, headers={'User-Agent': 'MinecraftManager'})
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=15) as response:
                 data = json.loads(response.read().decode())
             
             latest_type = "snapshot" if self.config.get("update_to_snapshot", False) else "release"
@@ -261,20 +261,25 @@ class MinecraftUpdaterCore:
     def check_self_update(self):
         if not self.config.get("manager_auto_update", True):
              return False
+
+        def parse_ver(v): return [int(x) for x in v.split('.')]
+
         ts = int(time.time())
         # Placeholder URL - adjust to your actual repo
         MANAGER_URL = f"https://raw.githubusercontent.com/UnDadFeated/Minecraft_Server_Manager/master/mcsm.pyw?t={ts}"
         try:
             req = urllib.request.Request(MANAGER_URL, headers={'User-Agent': 'MinecraftManagerUpdater'})
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=15) as response:
                 remote_content = response.read().decode('utf-8')
             match = re.search(r'__version__\s*=\s*"([^"]+)"', remote_content)
-            if match and match.group(1) > __version__:
-                self.log(f"New manager version found ({match.group(1)}). Downloading...")
-                new_file = "mcsm.pyw.new"
-                with open(new_file, "w", encoding='utf-8') as f:
-                    f.write(remote_content)
-                return True
+            if match:
+                remote_ver = match.group(1)
+                if parse_ver(remote_ver) > parse_ver(__version__):
+                    self.log(f"New manager version found ({remote_ver}). Downloading...")
+                    new_file = "mcsm.pyw.new"
+                    with open(new_file, "w", encoding='utf-8') as f:
+                        f.write(remote_content)
+                    return True
             return False
         except: return False
 
@@ -308,7 +313,7 @@ try:
         if os.path.exists(old_file): os.remove(old_file)
         os.rename(new_file, old_file)
     
-    subprocess.Popen([sys.executable, old_file] + {args_repr})
+    subprocess.Popen([sys.executable] + {args_repr})
 except Exception as e:
     print(f"Update failed: {{e}}")
 '''
@@ -344,7 +349,7 @@ except Exception as e:
         self.log(f"New Minecraft version available: {target_ver}")
         try:
             req = urllib.request.Request(json_url)
-            with urllib.request.urlopen(req) as resp:
+            with urllib.request.urlopen(req, timeout=15) as resp:
                 ver_data = json.loads(resp.read().decode())
             
             download_url = ver_data['downloads']['server']['url']
@@ -354,7 +359,11 @@ except Exception as e:
                 self.log("Local JAR matches remote SHA1. Skipping download.")
             else:
                 self.log(f"Downloading {SERVER_JAR}...")
-                urllib.request.urlretrieve(download_url, SERVER_JAR)
+                req_dl = urllib.request.Request(download_url)
+                with urllib.request.urlopen(req_dl, timeout=30) as dl_resp:
+                    with open(SERVER_JAR, "wb") as f:
+                        while chunk := dl_resp.read(65536):
+                            f.write(chunk)
             
             self.config["last_server_version"] = target_ver
             save_config(self.config)
@@ -378,7 +387,7 @@ except Exception as e:
                 result = subprocess.run(cmd, capture_output=True, text=True)
                 if result.returncode == 0:
                     for pid in result.stdout.strip().splitlines():
-                        subprocess.run(["kill", "-9", pid])
+                        subprocess.run(["kill", pid])
              except: pass
 
     def send_command(self, command):
@@ -412,7 +421,7 @@ except Exception as e:
         try:
             data = json.dumps({"content": message}).encode()
             req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
-            with urllib.request.urlopen(req): pass
+            with urllib.request.urlopen(req, timeout=10): pass
         except: pass
 
     def start_server_sequence(self):
@@ -475,7 +484,8 @@ except Exception as e:
         try:
             for line in iter(stream.readline, b''):
                 if line: self.log(line.decode(errors='replace').strip(), tag)
-        except: pass
+        except Exception as e:
+            self.log(f"Stream read error ({tag}): {e}", tag="stderr")
         finally: stream.close()
 
     def _monitor_loop(self):
@@ -502,8 +512,10 @@ except Exception as e:
             self.update_server()
             if not self.stop_requested and self.server_process:
                 self.update_timer = threading.Timer(1800, update_task)
+                self.update_timer.daemon = True
                 self.update_timer.start()
         self.update_timer = threading.Timer(1800, update_task)
+        self.update_timer.daemon = True
         self.update_timer.start()
 
     def restart_server(self):
@@ -517,10 +529,17 @@ except Exception as e:
         if self.server_process:
             self.log("Stopping server...")
             try:
-                self.server_process.stdin.write(b"stop\n")
-                self.server_process.stdin.flush()
+                if self.server_process.stdin:
+                    self.server_process.stdin.write(b"stop\n")
+                    self.server_process.stdin.flush()
                 self.server_process.wait(timeout=30)
-            except:
+            except subprocess.TimeoutExpired:
+                self.log("Server did not stop in time. Killing process...")
+                if self.server_process:
+                    self.server_process.kill()
+                    self.server_process.wait()
+            except Exception as e:
+                self.log(f"Error stopping server: {e}")
                 if self.server_process: self.server_process.kill()
 
     def _schedule_restart(self):
@@ -651,22 +670,27 @@ def run_gui_mode():
                 "enable_discord": self.var_discord.get(), "enable_auto_restart": self.var_restart.get(),
                 "enable_schedule": self.var_schedule.get(), "discord_webhook": self.var_discord_url.get(),
                 "restart_interval": self.var_sch_time.get(), "server_memory": self.var_memory.get(),
-                "max_backups": int(self.var_max_bkp.get() or 3), "start_with_windows": self.var_start_win.get()
+                "max_backups": int(self.var_max_bkp.get()) if self.var_max_bkp.get().isdigit() else 3, "start_with_windows": self.var_start_win.get()
             })
             save_config(self.config)
 
         def save_win(self):
             self.save()
             if not IS_WINDOWS: return
-            import winreg
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_SET_VALUE)
-            if self.var_start_win.get():
-                path = f'"{sys.executable}" "{os.path.abspath(sys.argv[0])}" --startup-delay'
-                winreg.SetValueEx(key, "MinecraftServerManager", 0, winreg.REG_SZ, path)
-            else:
-                try: winreg.DeleteValue(key, "MinecraftServerManager")
-                except: pass
-            winreg.CloseKey(key)
+            try:
+                import winreg
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_SET_VALUE)
+                if self.var_start_win.get():
+                    path = f'"{sys.executable}" "{os.path.abspath(sys.argv[0])}" --startup-delay'
+                    winreg.SetValueEx(key, "MinecraftServerManager", 0, winreg.REG_SZ, path)
+                else:
+                    try: winreg.DeleteValue(key, "MinecraftServerManager")
+                    except: pass
+                winreg.CloseKey(key)
+            except Exception as e:
+                import tkinter as tk
+                from tkinter import messagebox
+                messagebox.showerror("Error", f"Failed to set registry key: {e}")
 
         def start_server(self):
             self.save(); self.btn_start.config(state=tk.DISABLED); self.btn_stop.config(state=tk.NORMAL)
@@ -715,7 +739,9 @@ def run_gui_mode():
 
 def main():
     os.chdir(BASE_DIR)
-    if "--startup-delay" in sys.argv: time.sleep(30)
+    if "--startup-delay" in sys.argv:
+        time.sleep(30)
+        sys.argv.remove("--startup-delay")
     if "-nogui" in sys.argv: run_console_mode()
     else: run_gui_mode()
 
