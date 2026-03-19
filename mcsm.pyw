@@ -25,7 +25,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "4.0.1"
+__version__ = "4.1.0"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -638,7 +638,7 @@ def run_gui_mode():
             rows = ttk.Frame(l_cont)
             rows.pack(fill=tk.X)
 
-            c1 = ttk.Frame(rows); c1.pack(side=tk.LEFT, padx=10)
+            c1 = ttk.Frame(rows); c1.pack(side=tk.LEFT, padx=5)
             ttk.Checkbutton(c1, text="Enable Logging", variable=self.var_logging, command=self.save).pack(anchor="w")
             ttk.Checkbutton(c1, text="Auto-Start", variable=self.var_autostart, command=self.save).pack(anchor="w")
             ttk.Checkbutton(c1, text="Auto-Restart", variable=self.var_restart, command=self.save).pack(anchor="w")
@@ -647,12 +647,12 @@ def run_gui_mode():
             ttk.Label(m_f, text="RAM:").pack(side=tk.LEFT)
             ttk.Entry(m_f, textvariable=self.var_memory, width=6).pack(side=tk.LEFT, padx=5)
 
-            c2 = ttk.Frame(rows); c2.pack(side=tk.LEFT, padx=10)
+            c2 = ttk.Frame(rows); c2.pack(side=tk.LEFT, padx=5)
             ttk.Checkbutton(c2, text="Check Updates", variable=self.var_check_upd, command=self.save).pack(anchor="w")
             ttk.Checkbutton(c2, text="Latest Snapshots", variable=self.var_snapshot, command=self.save).pack(anchor="w")
             ttk.Checkbutton(c2, text="Do Not Update if Modded", variable=self.var_mod_no_upd, command=self.save).pack(anchor="w")
 
-            c3 = ttk.Frame(rows); c3.pack(side=tk.LEFT, padx=10)
+            c3 = ttk.Frame(rows); c3.pack(side=tk.LEFT, padx=5)
             b_f = ttk.Frame(c3); b_f.pack(anchor="w")
             ttk.Checkbutton(b_f, text="Backups", variable=self.var_backup, command=self.save).pack(side=tk.LEFT)
             ttk.Entry(b_f, textvariable=self.var_max_bkp, width=3).pack(side=tk.LEFT, padx=5)
@@ -661,7 +661,7 @@ def run_gui_mode():
             ttk.Checkbutton(s_f, text="Restart (Hrs)", variable=self.var_schedule, command=self.save).pack(side=tk.LEFT)
             ttk.Entry(s_f, textvariable=self.var_sch_time, width=4).pack(side=tk.LEFT, padx=5)
 
-            dsc = ttk.LabelFrame(rows, text="Discord"); dsc.pack(side=tk.LEFT, padx=10, fill=tk.Y)
+            dsc = ttk.LabelFrame(rows, text="Discord"); dsc.pack(side=tk.LEFT, padx=5, fill=tk.Y)
             ttk.Checkbutton(dsc, text="Enable", variable=self.var_discord, command=self.save).pack(anchor="w")
             ttk.Label(dsc, text="Webhook:").pack(anchor="w")
             ttk.Entry(dsc, textvariable=self.var_discord_url, width=20).pack(pady=1)
@@ -670,16 +670,37 @@ def run_gui_mode():
             ttk.Label(dsc, text="Channel ID:").pack(anchor="w")
             ttk.Entry(dsc, textvariable=self.var_discord_chan, width=20).pack(pady=1)
 
-            r_cont = ttk.Frame(cfg_frame); r_cont.pack(side=tk.RIGHT)
-            self.btn_start = ttk.Button(r_cont, text="START", command=self.start_server, width=15); self.btn_start.pack()
-            self.btn_stop = ttk.Button(r_cont, text="STOP", command=self.stop_server, width=15, state=tk.DISABLED); self.btn_stop.pack()
+            r_cont = ttk.Frame(cfg_frame); r_cont.pack(side=tk.RIGHT, padx=5)
             
-            st_f = ttk.Frame(r_cont); st_f.pack()
-            ttk.Label(st_f, textvariable=self.status_var).pack()
-            ttk.Label(st_f, textvariable=self.uptime_var).pack()
+            # QA Buttons (Folder shortcuts)
+            qa_f = ttk.Frame(r_cont); qa_f.pack(side=tk.LEFT, padx=5)
+            def open_dir(p):
+                try:
+                    ap = os.path.abspath(p)
+                    if not os.path.exists(ap): os.makedirs(ap)
+                    if IS_WINDOWS: os.startfile(ap)
+                    else: subprocess.run(["xdg-open", ap])
+                except: pass
+            
+            ttk.Button(qa_f, text="Server", width=8, command=lambda: open_dir(".")).pack(pady=1)
+            ttk.Button(qa_f, text="Worlds", width=8, command=lambda: open_dir(WORLD_DIR)).pack(pady=1)
+            ttk.Button(qa_f, text="Backups", width=8, command=lambda: open_dir(BACKUP_DIR)).pack(pady=1)
 
-            self.console = scrolledtext.ScrolledText(self.root, font=("Consolas", 10), state=tk.DISABLED, bg="#0c0c0c", fg="#d4d4d4")
-            self.console.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+            # Action Buttons
+            act_f = ttk.Frame(r_cont); act_f.pack(side=tk.LEFT)
+            self.btn_start = ttk.Button(act_f, text="START SERVER", command=self.start_server, width=18, style="StartPulse.TButton")
+            self.btn_start.pack(pady=1)
+            self.btn_stop = ttk.Button(act_f, text="STOP SERVER", command=self.stop_server, width=18, state=tk.DISABLED, style="StopAlert.TButton")
+            self.btn_stop.pack(pady=1)
+            
+            ttk.Label(act_f, text=f"Version: {self.config.get('last_server_version', 'Unknown')}", font=("Consolas", 8), foreground="gray").pack()
+            
+            st_f = ttk.Frame(act_f); st_f.pack(pady=2)
+            ttk.Label(st_f, textvariable=self.status_var, font=("Consolas", 8, "bold")).pack(side=tk.LEFT, padx=5)
+            ttk.Label(st_f, textvariable=self.uptime_var, font=("Consolas", 8)).pack(side=tk.LEFT, padx=5)
+
+            self.console = scrolledtext.ScrolledText(self.root, font=("Consolas", 9), state=tk.DISABLED, bg="#101010", fg="#d4d4d4", borderwidth=0, highlightthickness=0)
+            self.console.pack(fill=tk.BOTH, expand=True, padx=10, pady=2)
 
             cmd_f = ttk.Frame(self.root); cmd_f.pack(fill=tk.X, padx=10, pady=5)
             self.cmd_var = tk.StringVar()
@@ -777,14 +798,18 @@ def run_gui_mode():
                     pass
             
             # Custom Antigravity Polish (Grey theme + 1px silver lines)
-            style.configure(".", background=bg, foreground=fg, font=("Segoe UI", 10))
+            style.configure(".", background=bg, foreground=fg, font=("Segoe UI", 8))
             style.configure("TFrame", background=bg)
             # 1px Silver line effect on LabelFrames
             style.configure("TLabelframe", background=bg, foreground=fg, bordercolor=silver, borderwidth=1)
-            style.configure("TLabelframe.Label", background=bg, foreground=fg)
-            style.configure("TButton", padding=5)
-            style.configure("TCheckbutton", background=bg, foreground=fg)
-            style.configure("TEntry", fieldbackground=bg if self.is_dark else "#ffffff", foreground=fg, bordercolor=silver)
+            style.configure("TLabelframe.Label", background=bg, foreground=accent, font=("Segoe UI", 8, "bold"))
+            style.configure("TButton", padding=2, font=("Segoe UI", 8))
+            style.configure("TCheckbutton", background=bg, foreground=fg, font=("Segoe UI", 8))
+            style.configure("TEntry", fieldbackground=bg if self.is_dark else "#ffffff", foreground=fg, bordercolor=silver, font=("Segoe UI", 8))
+            
+            # Colored Action Buttons
+            style.configure("StartPulse.TButton", foreground="#107C10" if not self.is_dark else "#23D18B", font=("Segoe UI", 8, "bold"))
+            style.configure("StopAlert.TButton", foreground="#D13438" if not self.is_dark else "#F14C4C", font=("Segoe UI", 8, "bold"))
             
             self.root.configure(bg=bg)
             self.console.config(bg="#0c0c0c" if self.is_dark else "#fcfcfc", 
