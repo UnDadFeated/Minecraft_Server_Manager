@@ -58,7 +58,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "5.0.8"
+__version__ = "5.0.9"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -1396,12 +1396,12 @@ def run_gui_mode():
                 console_bg, console_fg = "#0c0c0c", "#d4d4d4"
                 muted, cb_hover = "#9d9d9d", "#3fb950"
                 btn_bg, btn_hover_bg, btn_border = input_bg, "#2a2a2a", "#333333"
+                footer_bg = "#181818"
                 cb_checked = f"background: {cb_hover}; border-color: {cb_hover}; image: url({check_w!r});"
                 input_border = f"border: 1px solid {btn_border};"
-                group_border = f"border: 1px solid {btn_border}; border-radius: 4px; background: {input_bg};"
+                group_border = f"border: 1px solid {btn_border}; border-radius: 4px; background: {footer_bg};"
                 frame_border = f"border: 1px solid {btn_border}; border-radius: 4px; background: {input_bg};"
                 btn_border_style = f"border: 1px solid {btn_border}; border-radius: 4px;"
-                footer_bg = "#181818"
             else:
                 bg, fg = "#d4d0c8", "#000000"
                 input_bg, input_fg = "#ffffff", "#000000"

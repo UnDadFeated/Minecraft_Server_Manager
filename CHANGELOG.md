@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.0.9 (2025-03-21)
+
+- **fix:** Control config box uses footer darker grey (#181818); input fields and buttons pop against it
+
 ## 5.0.8 (2025-03-21)
 
 - **fix:** Dark theme – button bg matches Discord input grey (#222222); CPU/RAM stats transparent bg; config/command boxes same color
