@@ -58,7 +58,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "5.0.3"
+__version__ = "5.0.4"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -1029,15 +1029,10 @@ def run_gui_mode():
             self.cb_check_upd.setChecked(self.config.get("check_updates", True))
             self.cb_check_upd.stateChanged.connect(self._on_check_updates_toggled)
             col2.addWidget(self.cb_check_upd)
-            mod_frame = QWidget()
-            mod_layout = QHBoxLayout(mod_frame)
-            mod_layout.setContentsMargins(16, 0, 0, 0)
-            mod_layout.setSpacing(0)
             self.cb_mod_no_upd = QCheckBox("Do not update if modded")
             self.cb_mod_no_upd.setChecked(not self.config.get("check_updates", True))
             self.cb_mod_no_upd.stateChanged.connect(self._on_mod_no_upd_toggled)
-            mod_layout.addWidget(self.cb_mod_no_upd)
-            col2.addWidget(mod_frame)
+            col2.addWidget(self.cb_mod_no_upd)
             self.cb_snapshot = QCheckBox("Latest Snapshots")
             self.cb_snapshot.setChecked(self.config.get("update_to_snapshot", False))
             self.cb_snapshot.stateChanged.connect(self.save)
@@ -1405,10 +1400,10 @@ def run_gui_mode():
                 btn_bg, btn_hover_bg, btn_border = "#181818", "#202020", "#333333"
                 cb_checked = f"background: {cb_hover}; border-color: {cb_hover}; image: url({check_w!r});"
                 input_border = f"border: 1px solid {btn_border};"
-                group_border = f"border: 1px solid {btn_border}; border-radius: 4px; background: {input_bg};"
-                frame_border = f"border: 1px solid {btn_border}; border-radius: 4px; background: {input_bg};"
+                group_border = f"border: 1px solid {btn_border}; border-radius: 4px; background: transparent;"
+                frame_border = f"border: 1px solid {btn_border}; border-radius: 4px; background: transparent;"
                 btn_border_style = f"border: 1px solid {btn_border}; border-radius: 4px;"
-                footer_bg = "#181818"
+                footer_bg = "transparent"
             else:
                 bg, fg = "#d4d0c8", "#000000"
                 input_bg, input_fg = "#ffffff", "#000000"

@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.0.4 (2025-03-21)
+
+- **fix:** Dark theme – transparent backgrounds for QFrame, QGroupBox, and footer; remove black box appearance
+
 ## 5.0.3 (2025-03-21)
 
 - **fix:** CPU/RAM use direct psutil calls in _refresh_uptime (match Hytale)
