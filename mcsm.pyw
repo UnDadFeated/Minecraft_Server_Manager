@@ -58,7 +58,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "5.0.7"
+__version__ = "5.0.8"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -1143,6 +1143,7 @@ def run_gui_mode():
             stats_row.addWidget(self.lbl_cpu)
             stats_row.addWidget(self.lbl_ram)
             stats_container = QWidget()
+            stats_container.setObjectName("statsBar")
             stats_container.setLayout(stats_row)
             action_col.addWidget(stats_container, 0, Qt.AlignHCenter)
             self.lbl_uptime = QLabel("Uptime: 00:00:00")
@@ -1394,7 +1395,7 @@ def run_gui_mode():
                 input_bg, input_fg = "#222222", "#e0e0e0"
                 console_bg, console_fg = "#0c0c0c", "#d4d4d4"
                 muted, cb_hover = "#9d9d9d", "#3fb950"
-                btn_bg, btn_hover_bg, btn_border = "#181818", "#202020", "#333333"
+                btn_bg, btn_hover_bg, btn_border = input_bg, "#2a2a2a", "#333333"
                 cb_checked = f"background: {cb_hover}; border-color: {cb_hover}; image: url({check_w!r});"
                 input_border = f"border: 1px solid {btn_border};"
                 group_border = f"border: 1px solid {btn_border}; border-radius: 4px; background: {input_bg};"
@@ -1433,7 +1434,8 @@ def run_gui_mode():
                 QGroupBox::title {{ subcontrol-origin: margin; left: 8px; padding: 0 4px; color: {fg}; }}
                 QFrame {{ color: {fg}; {frame_border} padding: 4px; }}
                 QLabel {{ color: {fg}; border: none; background: transparent; }}
-                #mutedLbl {{ font-size: 10px; color: {muted}; margin: 0; padding: 0; }}
+                #mutedLbl {{ font-size: 10px; color: {muted}; margin: 0; padding: 0; background: transparent; }}
+                #statsBar {{ background: transparent; }}
                 #statusLbl {{ border: none; background: transparent; padding: 2px 0; min-height: 1.2em; }}
                 QPushButton {{ {btn_border_style} padding: 4px 8px; color: {fg}; background: {btn_bg}; }}
                 QPushButton:hover {{ border: 2px solid {cb_hover}; background: {btn_hover_bg}; }}

@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.0.8 (2025-03-21)
+
+- **fix:** Dark theme – button bg matches Discord input grey (#222222); CPU/RAM stats transparent bg; config/command boxes same color
+
 ## 5.0.7 (2025-03-21)
 
 - **fix:** "Check for updates" button no longer logs "Manager is up to date." twice

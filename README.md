@@ -2,7 +2,7 @@
 
 A Python-based server management tool for dedicated Minecraft instances. Provides automated updates, backups, crash recovery, and remote control via a modern PySide6 GUI or headless console mode.
 
-[![Version](https://img.shields.io/badge/version-5.0.7-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.0.8-blue.svg)](CHANGELOG.md)
 [![Python](https://img.shields.io/badge/python-3.8%2B-yellow.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)]()
 
