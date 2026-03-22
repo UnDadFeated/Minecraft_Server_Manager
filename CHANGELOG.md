@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.0.6 (2025-03-21)
+
+- **fix:** Dark theme – config box, command box, footer use #222222/#181818 to match Hytale (restore layered grey, not transparent)
+
 ## 5.0.5 (2025-03-21)
 
 - **fix:** Footer "Check for updates" button checks manager from GitHub only (not Minecraft server JAR); match Hytale behavior
