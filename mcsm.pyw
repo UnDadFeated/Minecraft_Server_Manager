@@ -58,7 +58,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "5.0.1"
+__version__ = "5.0.2"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -1296,19 +1296,24 @@ def run_gui_mode():
             uptime_text = f"Uptime: {s}"
             if self.lbl_uptime.text() != uptime_text:
                 self.lbl_uptime.setText(uptime_text)
+            if HAS_PSUTIL:
+                def _fetch_cpu_ram():
+                    try:
+                        cpu = psutil.cpu_percent(interval=0.1)
+                        ram = psutil.virtual_memory().percent
+                        QTimer.singleShot(0, lambda: self._apply_cpu_ram(cpu, ram))
+                    except Exception:
+                        pass
+                threading.Thread(target=_fetch_cpu_ram, daemon=True).start()
+
+        def _apply_cpu_ram(self, cpu, ram):
+            self.lbl_cpu.setText(f"CPU: {cpu}%")
+            self.lbl_ram.setText(f"RAM: {ram}%")
 
         def update_stats(self, status):
             def apply():
                 state = status.get("state", "Unknown")
-                if HAS_PSUTIL:
-                    try:
-                        cpu_load = psutil.cpu_percent(interval=None)
-                        ram_load = psutil.virtual_memory().percent
-                        self.lbl_cpu.setText(f"CPU: {cpu_load}%")
-                        self.lbl_ram.setText(f"RAM: {ram_load}%")
-                    except Exception:
-                        pass
-                else:
+                if not HAS_PSUTIL:
                     self.lbl_cpu.setText("CPU: N/A")
                     self.lbl_ram.setText("RAM: N/A")
                 if state == "Stopped":

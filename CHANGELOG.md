@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.0.2 (2025-03-21)
+
+- **fix:** CPU/RAM display stuck at 0% – use `cpu_percent(interval=0.1)` in background thread
+
 ## 5.0.1 (2025-03-21)
 
 - **fix:** run_update_installer: use script_ext for mcsm.py/mcsm.pyw; CREATE_NO_WINDOW; pythonw restart handling
