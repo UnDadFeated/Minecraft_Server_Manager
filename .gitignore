@@ -55,6 +55,10 @@ cover/
 *.mo
 *.pot
 
+# Project tracking (local only)
+TASKS.md
+CONVERSATION_LOG.md
+
 # Manager generated
 .mcsm.lock
 .check_white.png
