@@ -1,133 +1,119 @@
-<div align="center">
-  <h1>🎮 Minecraft Server Manager</h1>
+# Minecraft Server Manager
 
-  <p>
-    <b>A robust, Python-based automation script designed for managing Dedicated Minecraft Servers with a focus on reliability, performance, and remote management.</b>
-  </p>
+A Python-based server management tool for dedicated Minecraft instances. Provides automated updates, backups, crash recovery, and remote control via a modern PySide6 GUI or headless console mode.
 
-  <p>
-    <img alt="Version" src="https://img.shields.io/badge/version-5.0.1-blue.svg" />
-    <img alt="Python" src="https://img.shields.io/badge/python-3.8%2B-yellow.svg" />
-    <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" />
-  </p>
+[![Version](https://img.shields.io/badge/version-5.0.1-blue.svg)](CHANGELOG.md)
+[![Python](https://img.shields.io/badge/python-3.8%2B-yellow.svg)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)]()
 
-</div>
+## Screenshot
 
----
+![Minecraft Server Manager](assets/screenshot.png)
 
-## ✨ Key Features
-
-- 🖥️ **Dual Interfaces:** Launch via the PySide6 GUI or headless console mode (`-nogui`) for streamlined server environments.
-- 🔒 **Single-Instance Lock:** Prevents multiple manager instances from controlling the same server.
-- 🔄 **Automated Updates:** Seamlessly checks the Mojang manifest API. When a Vanilla update is detected, it automatically downloads the JAR and restarts the server.
-- 🛡️ **Crash Detection & Auto-Restart:** Continually monitors the server process and issues automatic restarts to maintain high uptime.
-- ⏱️ **Scheduled Restarts:** Set specific intervals for automated, clean server reboots to prevent memory saturation and degradation over time.
-- 💾 **Automated World Backups:** Archives the local server world directory into a `.zip` file prior to initialization. Prevents catastrophic data loss.
-- 💬 **Discord Integration:** Features integrated Discord Webhooks to instantly alert your community on server status changes (Startup, Shutdown, Crashes). Includes a threaded bot for chat commands (`!start`, `!stop`, `!restart`, `!status`).
-- 📡 **Background Polling:** Periodically scans for new official Minecraft server versions, downloading and replacing engine files as necessary.
-- 🔧 **Modded Support:** Fully compatible with Forge and NeoForge installations.
-- 🚫 **Smart Mod Detection:** Automatically detects if mods are installed and can prevent unexpected Vanilla updates that might break your modded environment.
-- 🐧 **Linux Integration:** `-install-service` for systemd and `-enable-autostart` for desktop session autostart.
-- 🔄 **Self-Update:** Manager checks for updates and can restart to apply new versions automatically.
+*Graphical interface showing controls, real-time console output, resource monitoring (CPU/RAM), and server command input.*
 
 ---
 
-## 🛠️ Technical Prerequisites
+## Features
 
-### Minimum Requirements
+| Feature | Description |
+| :--- | :--- |
+| **Dual interfaces** | PySide6 GUI or headless console mode (`-nogui`) |
+| **Automated updates** | Mojang manifest API; downloads JAR and restarts when updates are available |
+| **Single-instance lock** | Prevents multiple manager instances from controlling the same server |
+| **Crash detection** | Monitors process health and performs automatic restarts |
+| **Scheduled restarts** | Configurable intervals for clean reboots |
+| **World backups** | Archives the world directory to zip before startup; configurable retention |
+| **Discord integration** | Webhooks and bot (`!start`, `!stop`, `!restart`, `!status`) |
+| **Modded support** | Compatible with Forge and NeoForge; optional update suppression when mods are present |
+| **Linux integration** | `-install-service` (systemd) and `-enable-autostart` (desktop) |
+| **Self-update** | Manager can update itself and restart to apply new versions |
+
+---
+
+## Requirements
 
 | Requirement | Details |
 | :--- | :--- |
-| **Operating System** | Windows, Linux, or macOS |
-| **Memory** | At least `2G` allocated to the server heap (`4G+` recommended for modded) |
-| **Java Environment** | **Java 17 or Java 21** depending on your Minecraft version. |
-| **Python** | Python 3.8 or higher |
-| **GUI** | PySide6 (pip install PySide6) |
-
----
-
-## 🚀 Installation Guide
-
-1. **Clone the Repository:** Download the repository source code.
-2. **Locate Server Path:** Move the script `mcsm.pyw` into the root directory where you intend to run (or are currently running) your Minecraft server.
-3. **Run Application:** Launch the program via your command line interface.
-
----
-
-## 📖 Operational Guide
-
-### Graphical Mode (Default)
-
-Running the script parameter-free initializes the Graphical User Interface.
-
-```bash
-python mcsm.pyw
-```
-
-- **Real-time Output:** View live stdout and stderr streams directly in the application pane.
-- **Visual Configurations:** Toggle crucial behaviors like Backups, Discord Webhooks, and Auto-Restart intervals directly through application checkboxes.
-- **Path Shortcuts:** Provides native file-explorer context buttons to rapidly open your Server Root, Worlds directory, and Backups archive.
-- **Theming Options:** Supports dynamically un-toggling light and dark mode elements.
-
-### Headless Console Mode
-
-Targeting headless environments, the application can run without the GUI (PySide6). All required values are read directly from `mcsm.conf` upon boot sequence.
-
-```bash
-python mcsm.pyw -nogui
-```
-
-### Command-Line Options
-
-| Option | Description |
-| :--- | :--- |
-| `-nogui` | Run in console-only mode (headless). |
-| `-install-service` | (Linux) Install systemd service for background operation. Requires `sudo`. |
-| `-enable-autostart` | (Linux) Add to desktop auto-start (`~/.config/autostart`). |
-| `-help`, `--help` | Show help message and exit. |
-
----
-
-## ⚙️ Configuration Reference
-
-Changes made to the server logic are primarily driven by the `mcsm.conf` configuration file auto-generated in the application root directory.
-
-```json
-{
-  "manager_auto_update": true,
-  "check_updates": true,
-  "auto_start": false,
-  "server_memory": "4G",
-  "enable_backups": true,
-  "max_backups": 3,
-  "enable_auto_restart": true,
-  "enable_schedule": false,
-  "restart_interval": 12.0,
-  "enable_discord": false,
-  "discord_webhook": "YOUR_WEBHOOK_URL",
-  "discord_token": "YOUR_BOT_TOKEN",
-  "discord_channel_id": 1234567890,
-  "update_to_snapshot": false,
-  "modded_do_not_update": true
-}
-```
-
-> **Note:** For the basic discord chatbot commands, verify your application's `Message Content Intent` is marked to `ON` within the Discord Developer portal.
-
----
-
-## 🏷️ Versioning
-
-**Current Version:** `5.0.1` · [Changelog](CHANGELOG.md)
-
-### Install Dependencies
+| **OS** | Windows, Linux, or macOS |
+| **Java** | Java 17 or Java 21 (depends on Minecraft version) |
+| **Python** | 3.8+ |
+| **Dependencies** | `psutil`, `PySide6`, `discord.py` (optional) |
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Required: `psutil`, `PySide6`, `discord.py` (optional for Discord bot).
+---
 
-<div align="center">
-  <i>Developed and maintained by <b>UnDadFeated</b></i>
-</div>
+## Installation
+
+1. Clone or download the repository.
+2. Place `mcsm.pyw` in the root directory of your Minecraft server.
+3. Install dependencies (see above).
+4. Run: `python mcsm.pyw`
+
+---
+
+## Usage
+
+### Graphical mode
+
+```bash
+python mcsm.pyw
+```
+
+- Real-time console output
+- One-click start/stop
+- Inline configuration (backups, Discord, RAM, etc.)
+- Shortcuts to Server, Worlds, and Backups folders
+- Light/dark theme toggle
+
+### Headless mode
+
+```bash
+python mcsm.pyw -nogui
+```
+
+Reads settings from `mcsm.conf`. Suitable for servers without a display.
+
+### Command-line options
+
+| Option | Description |
+| :--- | :--- |
+| `-nogui` | Run in console-only mode |
+| `-install-service` | (Linux) Install systemd service. Requires `sudo` |
+| `-enable-autostart` | (Linux) Add to desktop auto-start |
+| `-help` | Show help and exit |
+
+---
+
+## Configuration
+
+Settings are stored in `mcsm.conf` (created on first run).
+
+| Option | Description |
+| :--- | :--- |
+| `server_memory` | Heap size (e.g., `4G`, `8G`) |
+| `check_updates` | Check for Minecraft updates on startup |
+| `update_to_snapshot` | Use latest snapshot instead of release |
+| `modded_do_not_update` | Skip vanilla updates when mods are detected |
+| `enable_backups` | Create world backup before start |
+| `max_backups` | Number of backups to retain |
+| `enable_auto_restart` | Restart on crash |
+| `enable_schedule` | Enable scheduled restarts |
+| `restart_interval` | Hours between scheduled restarts |
+| `enable_discord` | Discord webhook/bot notifications |
+| `manager_auto_update` | Check for manager updates |
+
+> **Discord bot:** Enable **Message Content Intent** in the Discord Developer Portal for chat commands.
+
+---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
+
+---
+
+*Developed and maintained by **UnDadFeated***
