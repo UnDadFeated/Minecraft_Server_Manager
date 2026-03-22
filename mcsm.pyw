@@ -58,7 +58,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "5.0.2"
+__version__ = "5.0.3"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -1027,16 +1027,21 @@ def run_gui_mode():
             col2.setSpacing(6)
             self.cb_check_upd = QCheckBox("Check for new server updates")
             self.cb_check_upd.setChecked(self.config.get("check_updates", True))
-            self.cb_check_upd.stateChanged.connect(self.save)
+            self.cb_check_upd.stateChanged.connect(self._on_check_updates_toggled)
             col2.addWidget(self.cb_check_upd)
+            mod_frame = QWidget()
+            mod_layout = QHBoxLayout(mod_frame)
+            mod_layout.setContentsMargins(16, 0, 0, 0)
+            mod_layout.setSpacing(0)
+            self.cb_mod_no_upd = QCheckBox("Do not update if modded")
+            self.cb_mod_no_upd.setChecked(not self.config.get("check_updates", True))
+            self.cb_mod_no_upd.stateChanged.connect(self._on_mod_no_upd_toggled)
+            mod_layout.addWidget(self.cb_mod_no_upd)
+            col2.addWidget(mod_frame)
             self.cb_snapshot = QCheckBox("Latest Snapshots")
             self.cb_snapshot.setChecked(self.config.get("update_to_snapshot", False))
             self.cb_snapshot.stateChanged.connect(self.save)
             col2.addWidget(self.cb_snapshot)
-            self.cb_mod_no_upd = QCheckBox("Do Not Update if Modded")
-            self.cb_mod_no_upd.setChecked(self.config.get("modded_do_not_update", True))
-            self.cb_mod_no_upd.stateChanged.connect(self.save)
-            col2.addWidget(self.cb_mod_no_upd)
             bkp_row = QHBoxLayout()
             self.cb_backup = QCheckBox("Backup World on Start")
             self.cb_backup.setChecked(self.config.get("enable_backups", True))
@@ -1297,18 +1302,28 @@ def run_gui_mode():
             if self.lbl_uptime.text() != uptime_text:
                 self.lbl_uptime.setText(uptime_text)
             if HAS_PSUTIL:
-                def _fetch_cpu_ram():
-                    try:
-                        cpu = psutil.cpu_percent(interval=0.1)
-                        ram = psutil.virtual_memory().percent
-                        QTimer.singleShot(0, lambda: self._apply_cpu_ram(cpu, ram))
-                    except Exception:
-                        pass
-                threading.Thread(target=_fetch_cpu_ram, daemon=True).start()
+                try:
+                    cpu_load = psutil.cpu_percent(interval=0.1)
+                    ram_load = psutil.virtual_memory().percent
+                    self.lbl_cpu.setText(f"CPU: {cpu_load}%")
+                    self.lbl_ram.setText(f"RAM: {ram_load}%")
+                except Exception:
+                    pass
+            else:
+                self.lbl_cpu.setText("CPU: N/A")
+                self.lbl_ram.setText("RAM: N/A")
 
-        def _apply_cpu_ram(self, cpu, ram):
-            self.lbl_cpu.setText(f"CPU: {cpu}%")
-            self.lbl_ram.setText(f"RAM: {ram}%")
+        def _on_check_updates_toggled(self):
+            self.cb_mod_no_upd.blockSignals(True)
+            self.cb_mod_no_upd.setChecked(not self.cb_check_upd.isChecked())
+            self.cb_mod_no_upd.blockSignals(False)
+            self.save()
+
+        def _on_mod_no_upd_toggled(self):
+            self.cb_check_upd.blockSignals(True)
+            self.cb_check_upd.setChecked(not self.cb_mod_no_upd.isChecked())
+            self.cb_check_upd.blockSignals(False)
+            self.save()
 
         def update_stats(self, status):
             def apply():

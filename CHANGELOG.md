@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.0.3 (2025-03-21)
+
+- **fix:** CPU/RAM use direct psutil calls in _refresh_uptime (match Hytale)
+- **fix:** Check layout – Do not update if modded under Check for updates; mutually exclusive
+- **fix:** Remove redundant modded hint; align checkboxes with indent
+
 ## 5.0.2 (2025-03-21)
 
 - **fix:** CPU/RAM display stuck at 0% – use `cpu_percent(interval=0.1)` in background thread
