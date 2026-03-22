@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.0.5 (2025-03-21)
+
+- **fix:** Footer "Check for updates" button checks manager from GitHub only (not Minecraft server JAR); match Hytale behavior
+
 ## 5.0.4 (2025-03-21)
 
 - **fix:** Dark theme – transparent backgrounds for QFrame, QGroupBox, and footer; remove black box appearance

@@ -2,7 +2,7 @@
 
 A Python-based server management tool for dedicated Minecraft instances. Provides automated updates, backups, crash recovery, and remote control via a modern PySide6 GUI or headless console mode.
 
-[![Version](https://img.shields.io/badge/version-5.0.4-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.0.5-blue.svg)](CHANGELOG.md)
 [![Python](https://img.shields.io/badge/python-3.8%2B-yellow.svg)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)]()
 
@@ -27,7 +27,7 @@ A Python-based server management tool for dedicated Minecraft instances. Provide
 | **Discord integration** | Webhooks and bot (`!start`, `!stop`, `!restart`, `!status`) |
 | **Modded support** | Compatible with Forge and NeoForge; optional update suppression when mods are present |
 | **Linux integration** | `-install-service` (systemd) and `-enable-autostart` (desktop) |
-| **Self-update** | Manager can update itself and restart to apply new versions |
+| **Self-update** | Manager checks GitHub for updates; footer "Check for updates" button triggers manager check (not server JAR) |
 
 ---
 
@@ -104,7 +104,7 @@ Settings are stored in `mcsm.conf` (created on first run).
 | `enable_schedule` | Enable scheduled restarts |
 | `restart_interval` | Hours between scheduled restarts |
 | `enable_discord` | Discord webhook/bot notifications |
-| `manager_auto_update` | Check for manager updates |
+| `manager_auto_update` | Background check for manager updates from GitHub |
 
 > **Discord bot:** Enable **Message Content Intent** in the Discord Developer Portal for chat commands.
 
