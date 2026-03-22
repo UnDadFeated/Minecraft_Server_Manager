@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.0.7 (2025-03-21)
+
+- **fix:** "Check for updates" button no longer logs "Manager is up to date." twice
+
 ## 5.0.6 (2025-03-21)
 
 - **fix:** Dark theme – config box, command box, footer use #222222/#181818 to match Hytale (restore layered grey, not transparent)

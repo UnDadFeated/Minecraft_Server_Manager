@@ -58,7 +58,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "5.0.6"
+__version__ = "5.0.7"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -1212,8 +1212,6 @@ def run_gui_mode():
                         time.sleep(0.5)
                     self.core.run_update_installer()
                 threading.Thread(target=do_install, daemon=True).start()
-            else:
-                self.core.log("Manager is up to date.")
 
         def send_command_ui(self):
             cmd = self.entry_cmd.text().strip()
