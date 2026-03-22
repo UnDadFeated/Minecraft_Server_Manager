@@ -55,6 +55,12 @@ cover/
 *.mo
 *.pot
 
+# Manager generated
+.mcsm.lock
+.check_white.png
+.check_black.png
+updater_installer.py
+
 # Django stuff:
 *.log
 local_settings.py

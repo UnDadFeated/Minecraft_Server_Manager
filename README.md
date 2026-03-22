@@ -6,7 +6,7 @@
   </p>
 
   <p>
-    <img alt="Version" src="https://img.shields.io/badge/version-4.1.3-blue.svg" />
+    <img alt="Version" src="https://img.shields.io/badge/version-5.0.1-blue.svg" />
     <img alt="Python" src="https://img.shields.io/badge/python-3.8%2B-yellow.svg" />
     <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg" />
   </p>
@@ -17,8 +17,9 @@
 
 ## ✨ Key Features
 
-- 🖥️ **Dual Interfaces:** Launch via the modern, user-friendly graphical interface (GUI), or utilize the headless console mode (`-nogui`) for streamlined server environments.
-- 🔄 **Automated Updates:** Seamlessly checks the Mojang manifest API. When a Vanilla update is detected, it automatically downloads the JAR and restarts.
+- 🖥️ **Dual Interfaces:** Launch via the PySide6 GUI or headless console mode (`-nogui`) for streamlined server environments.
+- 🔒 **Single-Instance Lock:** Prevents multiple manager instances from controlling the same server.
+- 🔄 **Automated Updates:** Seamlessly checks the Mojang manifest API. When a Vanilla update is detected, it automatically downloads the JAR and restarts the server.
 - 🛡️ **Crash Detection & Auto-Restart:** Continually monitors the server process and issues automatic restarts to maintain high uptime.
 - ⏱️ **Scheduled Restarts:** Set specific intervals for automated, clean server reboots to prevent memory saturation and degradation over time.
 - 💾 **Automated World Backups:** Archives the local server world directory into a `.zip` file prior to initialization. Prevents catastrophic data loss.
@@ -26,6 +27,8 @@
 - 📡 **Background Polling:** Periodically scans for new official Minecraft server versions, downloading and replacing engine files as necessary.
 - 🔧 **Modded Support:** Fully compatible with Forge and NeoForge installations.
 - 🚫 **Smart Mod Detection:** Automatically detects if mods are installed and can prevent unexpected Vanilla updates that might break your modded environment.
+- 🐧 **Linux Integration:** `-install-service` for systemd and `-enable-autostart` for desktop session autostart.
+- 🔄 **Self-Update:** Manager checks for updates and can restart to apply new versions automatically.
 
 ---
 
@@ -39,6 +42,7 @@
 | **Memory** | At least `2G` allocated to the server heap (`4G+` recommended for modded) |
 | **Java Environment** | **Java 17 or Java 21** depending on your Minecraft version. |
 | **Python** | Python 3.8 or higher |
+| **GUI** | PySide6 (pip install PySide6) |
 
 ---
 
@@ -67,11 +71,20 @@ python mcsm.pyw
 
 ### Headless Console Mode
 
-Targeting headless environments, the application can bypass the `tkinter` dependency completely. All required values are read directly from `mcsm.conf` upon boot sequence.
+Targeting headless environments, the application can run without the GUI (PySide6). All required values are read directly from `mcsm.conf` upon boot sequence.
 
 ```bash
 python mcsm.pyw -nogui
 ```
+
+### Command-Line Options
+
+| Option | Description |
+| :--- | :--- |
+| `-nogui` | Run in console-only mode (headless). |
+| `-install-service` | (Linux) Install systemd service for background operation. Requires `sudo`. |
+| `-enable-autostart` | (Linux) Add to desktop auto-start (`~/.config/autostart`). |
+| `-help`, `--help` | Show help message and exit. |
 
 ---
 
@@ -105,7 +118,15 @@ Changes made to the server logic are primarily driven by the `mcsm.conf` configu
 
 ## 🏷️ Versioning
 
-**Current Version:** `4.1.3`
+**Current Version:** `5.0.1` · [Changelog](CHANGELOG.md)
+
+### Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+Required: `psutil`, `PySide6`, `discord.py` (optional for Discord bot).
 
 <div align="center">
   <i>Developed and maintained by <b>UnDadFeated</b></i>
