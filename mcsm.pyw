@@ -58,7 +58,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "5.0.9"
+__version__ = "5.1.0"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -937,9 +937,9 @@ def run_gui_mode():
     """Starts the graphical user interface using PySide6."""
     _debug("GUI", "run_gui_mode() entered")
     from PySide6.QtWidgets import (
-        QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+        QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
         QGroupBox, QLabel, QPushButton, QCheckBox, QLineEdit,
-        QPlainTextEdit, QFrame, QMessageBox,
+        QPlainTextEdit, QFrame, QMessageBox, QInputDialog,
     )
     from PySide6.QtCore import Qt, QTimer, QUrl
     from PySide6.QtGui import QPalette, QColor, QFont, QTextCursor, QTextCharFormat, QImage, QPainter, QPen, QDesktopServices
@@ -976,6 +976,9 @@ def run_gui_mode():
             self.uptime_timer = QTimer(self)
             self.uptime_timer.timeout.connect(self._refresh_uptime)
             self.uptime_timer.start(1000)
+            self.security_timer = QTimer(self)
+            self.security_timer.timeout.connect(self._update_security_status)
+            self.security_timer.start(15000)
             if self.config.get("auto_start", False):
                 QTimer.singleShot(1000, self.start_server)
 
@@ -993,89 +996,101 @@ def run_gui_mode():
             header.addStretch()
             main.addLayout(header)
 
-            controls = QGroupBox("Controls & Configuration")
-            controls_layout = QHBoxLayout(controls)
-            controls_layout.setContentsMargins(6, 10, 6, 6)
-            controls_layout.setSpacing(16)
+            top_row = QHBoxLayout()
+            top_row.setSpacing(8)
 
-            col1 = QVBoxLayout()
-            col1.setSpacing(6)
-            self.cb_logging = QCheckBox("Enable File Logging")
+            config_box = QGroupBox("Config")
+            config_layout = QHBoxLayout(config_box)
+            config_layout.setContentsMargins(6, 8, 6, 6)
+            config_layout.setSpacing(6)
+            config_col1 = QVBoxLayout()
+            config_col1.setSpacing(3)
+            config_col2 = QVBoxLayout()
+            config_col2.setSpacing(3)
+
+            def add_section_title(layout, text):
+                lbl = QLabel(text)
+                lbl.setObjectName("mutedLbl")
+                lbl.setStyleSheet("font-weight: bold;")
+                layout.addWidget(lbl)
+
+            add_section_title(config_col1, "General")
+            self.cb_logging = QCheckBox("Logging")
             self.cb_logging.setChecked(self.config.get("enable_logging", True))
             self.cb_logging.stateChanged.connect(self.save)
-            col1.addWidget(self.cb_logging)
-            self.cb_autostart = QCheckBox("Auto-Start Server")
+            config_col1.addWidget(self.cb_logging)
+            self.cb_autostart = QCheckBox("Auto-Start")
             self.cb_autostart.setChecked(self.config.get("auto_start", False))
             self.cb_autostart.stateChanged.connect(self.save)
-            col1.addWidget(self.cb_autostart)
+            config_col1.addWidget(self.cb_autostart)
             self.cb_restart = QCheckBox("Auto-Restart on Crash")
             self.cb_restart.setChecked(self.config.get("enable_auto_restart", True))
             self.cb_restart.stateChanged.connect(self.save)
-            col1.addWidget(self.cb_restart)
-            ram_row = QHBoxLayout()
-            ram_row.addWidget(QLabel("Server RAM:"))
+            config_col1.addWidget(self.cb_restart)
+
+            general_grid = QGridLayout()
+            general_grid.setHorizontalSpacing(4)
+            general_grid.setVerticalSpacing(2)
+            general_grid.addWidget(QLabel("RAM"), 0, 0)
             self.entry_memory = QLineEdit()
             self.entry_memory.setMaximumWidth(60)
             self.entry_memory.setText(self.config.get("server_memory", "4G"))
             self.entry_memory.editingFinished.connect(self.save)
-            ram_row.addWidget(self.entry_memory)
-            ram_row.addStretch()
-            col1.addLayout(ram_row)
-            controls_layout.addLayout(col1)
+            general_grid.addWidget(self.entry_memory, 0, 1)
+            general_grid.setColumnStretch(2, 1)
+            config_col1.addLayout(general_grid)
 
-            col2 = QVBoxLayout()
-            col2.setSpacing(6)
-            self.cb_check_upd = QCheckBox("Check for new server updates")
+            add_section_title(config_col1, "Updates")
+            self.cb_check_upd = QCheckBox("Check for Updates")
             self.cb_check_upd.setChecked(self.config.get("check_updates", True))
             self.cb_check_upd.stateChanged.connect(self._on_check_updates_toggled)
-            col2.addWidget(self.cb_check_upd)
-            self.cb_mod_no_upd = QCheckBox("Do not update if modded")
+            config_col1.addWidget(self.cb_check_upd)
+            self.cb_mod_no_upd = QCheckBox("Skip if Modded")
             self.cb_mod_no_upd.setChecked(not self.config.get("check_updates", True))
             self.cb_mod_no_upd.stateChanged.connect(self._on_mod_no_upd_toggled)
-            col2.addWidget(self.cb_mod_no_upd)
+            config_col1.addWidget(self.cb_mod_no_upd)
             self.cb_snapshot = QCheckBox("Latest Snapshots")
             self.cb_snapshot.setChecked(self.config.get("update_to_snapshot", False))
             self.cb_snapshot.stateChanged.connect(self.save)
-            col2.addWidget(self.cb_snapshot)
-            bkp_row = QHBoxLayout()
-            self.cb_backup = QCheckBox("Backup World on Start")
+            config_col1.addWidget(self.cb_snapshot)
+            config_col1.addStretch()
+
+            add_section_title(config_col2, "Backup")
+            self.cb_backup = QCheckBox("Backup on Start")
             self.cb_backup.setChecked(self.config.get("enable_backups", True))
             self.cb_backup.stateChanged.connect(self.save)
-            bkp_row.addWidget(self.cb_backup)
-            bkp_row.addWidget(QLabel("Max:"))
+            config_col2.addWidget(self.cb_backup)
+            backup_grid = QGridLayout()
+            backup_grid.setHorizontalSpacing(4)
+            backup_grid.setVerticalSpacing(2)
+            backup_grid.addWidget(QLabel("Max"), 0, 0)
             self.entry_max_backups = QLineEdit()
-            self.entry_max_backups.setMaximumWidth(30)
+            self.entry_max_backups.setMaximumWidth(40)
             self.entry_max_backups.setText(str(self.config.get("max_backups", 3)))
             self.entry_max_backups.editingFinished.connect(self.save)
-            bkp_row.addWidget(self.entry_max_backups)
-            bkp_row.addStretch()
-            col2.addLayout(bkp_row)
-            sch_row = QHBoxLayout()
-            self.cb_schedule = QCheckBox("Schedule Restart (Hrs)")
+            backup_grid.addWidget(self.entry_max_backups, 0, 1)
+            self.cb_schedule = QCheckBox("Schedule (hrs)")
             self.cb_schedule.setChecked(self.config.get("enable_schedule", False))
             self.cb_schedule.stateChanged.connect(self.save)
-            sch_row.addWidget(self.cb_schedule)
+            backup_grid.addWidget(self.cb_schedule, 1, 0)
             self.entry_schedule = QLineEdit()
             self.entry_schedule.setMaximumWidth(45)
             self.entry_schedule.setText(str(self.config.get("restart_interval", 12)))
             self.entry_schedule.editingFinished.connect(self.save)
-            sch_row.addWidget(self.entry_schedule)
-            sch_row.addStretch()
-            col2.addLayout(sch_row)
-            controls_layout.addLayout(col2)
+            backup_grid.addWidget(self.entry_schedule, 1, 1)
+            backup_grid.setColumnStretch(2, 1)
+            config_col2.addLayout(backup_grid)
 
-            dsc_box = QFrame()
-            dsc_box.setFrameShape(QFrame.StyledPanel)
-            dsc_layout = QVBoxLayout(dsc_box)
-            dsc_layout.setContentsMargins(4, 4, 4, 4)
-            dsc_layout.setSpacing(1)
-            self.cb_discord = QCheckBox("Discord Integration")
+            add_section_title(config_col2, "Discord")
+            self.cb_discord = QCheckBox("Enable")
             self.cb_discord.setChecked(self.config.get("enable_discord", False))
             self.cb_discord.stateChanged.connect(self.save)
-            dsc_layout.addWidget(self.cb_discord)
-            for lbl, attr, secure in [("Webhook:", "entry_webhook", False), ("Token:", "entry_token", True), ("Channel:", "entry_channel", False)]:
-                row = QHBoxLayout()
-                row.addWidget(QLabel(lbl))
+            config_col2.addWidget(self.cb_discord)
+            discord_grid = QGridLayout()
+            discord_grid.setHorizontalSpacing(4)
+            discord_grid.setVerticalSpacing(2)
+            for row_idx, (lbl, attr, secure) in enumerate([("Webhook", "entry_webhook", False), ("Token", "entry_token", True), ("Channel", "entry_channel", False)]):
+                discord_grid.addWidget(QLabel(lbl), row_idx, 0)
                 e = QLineEdit()
                 if secure:
                     e.setEchoMode(QLineEdit.Password)
@@ -1086,11 +1101,62 @@ def run_gui_mode():
                     e.setText(self.config.get("discord_token", ""))
                 else:
                     e.setText(str(self.config.get("discord_channel_id", 0)))
-                e.setMinimumWidth(100)
                 e.editingFinished.connect(self.save)
-                row.addWidget(e)
-                dsc_layout.addLayout(row)
-            controls_layout.addWidget(dsc_box)
+                discord_grid.addWidget(e, row_idx, 1)
+            config_col2.addLayout(discord_grid)
+            config_col2.addStretch()
+
+            config_layout.addLayout(config_col1, 1)
+            config_layout.addLayout(config_col2, 1)
+            top_row.addWidget(config_box, 2)
+
+            security_box = QGroupBox("Security")
+            security_layout = QVBoxLayout(security_box)
+            security_layout.setContentsMargins(6, 8, 6, 6)
+            security_layout.setSpacing(4)
+
+            online_row = QHBoxLayout()
+            online_row.addWidget(QLabel("Online Mode"))
+            self.cb_online_mode = QCheckBox("Enabled")
+            self.cb_online_mode.setChecked(True)
+            self.cb_online_mode.stateChanged.connect(self._on_online_mode_toggled)
+            online_row.addWidget(self.cb_online_mode)
+            self.lbl_online_warn = QLabel("⚠")
+            self.lbl_online_warn.setToolTip("Offline mode allows username spoofing.")
+            online_row.addWidget(self.lbl_online_warn)
+            online_row.addStretch()
+            security_layout.addLayout(online_row)
+
+            white_row = QHBoxLayout()
+            white_row.addWidget(QLabel("Whitelist"))
+            self.cb_whitelist = QCheckBox("Enabled")
+            self.cb_whitelist.setChecked(True)
+            self.cb_whitelist.stateChanged.connect(self._on_whitelist_toggled)
+            white_row.addWidget(self.cb_whitelist)
+            self.lbl_whitelist_count = QLabel("0 players")
+            self.lbl_whitelist_count.setObjectName("mutedLbl")
+            white_row.addWidget(self.lbl_whitelist_count)
+            white_row.addStretch()
+            security_layout.addLayout(white_row)
+
+            status_row = QHBoxLayout()
+            status_row.addWidget(QLabel("Security Status"))
+            self.lbl_security_status = QLabel("Unknown")
+            self.lbl_security_status.setObjectName("statusLbl")
+            status_row.addWidget(self.lbl_security_status)
+            status_row.addStretch()
+            security_layout.addLayout(status_row)
+
+            actions_row = QHBoxLayout()
+            self.btn_whitelist = QPushButton("Whitelist")
+            self.btn_whitelist.clicked.connect(self._show_whitelist_dialog)
+            actions_row.addWidget(self.btn_whitelist)
+            self.btn_restore_backup = QPushButton("Restore")
+            self.btn_restore_backup.clicked.connect(self._show_restore_backups)
+            actions_row.addWidget(self.btn_restore_backup)
+            security_layout.addLayout(actions_row)
+            security_layout.addStretch()
+            top_row.addWidget(security_box, 1)
 
             def open_dir(path):
                 try:
@@ -1100,6 +1166,11 @@ def run_gui_mode():
                     QDesktopServices.openUrl(QUrl.fromLocalFile(p))
                 except Exception as ex:
                     QMessageBox.critical(self, "Error", f"Could not open directory: {ex}")
+
+            server_box = QGroupBox("Server Details")
+            server_layout = QHBoxLayout(server_box)
+            server_layout.setContentsMargins(6, 8, 6, 6)
+            server_layout.setSpacing(8)
 
             nav_col = QVBoxLayout()
             nav_col.setSpacing(1)
@@ -1115,7 +1186,8 @@ def run_gui_mode():
             self.lbl_status.setTextFormat(Qt.RichText)
             self.lbl_status.setStyleSheet("font-weight: bold;")
             nav_col.addWidget(self.lbl_status)
-            controls_layout.addLayout(nav_col)
+            nav_col.addStretch()
+            server_layout.addLayout(nav_col, 1)
 
             action_col = QVBoxLayout()
             action_col.setSpacing(2)
@@ -1124,14 +1196,14 @@ def run_gui_mode():
             self.btn_start.setFixedWidth(140)
             self.btn_start.setObjectName("btnStart")
             self.btn_start.clicked.connect(self.start_server)
-            action_col.addWidget(self.btn_start)
+            action_col.addWidget(self.btn_start, 0, Qt.AlignHCenter)
             self.btn_stop = QPushButton("STOP SERVER")
             self.btn_stop.setFixedHeight(26)
             self.btn_stop.setFixedWidth(140)
             self.btn_stop.setObjectName("btnStop")
             self.btn_stop.setEnabled(False)
             self.btn_stop.clicked.connect(self.stop_server)
-            action_col.addWidget(self.btn_stop)
+            action_col.addWidget(self.btn_stop, 0, Qt.AlignHCenter)
             ver_lbl = QLabel(f"Version: {self.config.get('last_server_version', 'Unknown')}")
             ver_lbl.setObjectName("mutedLbl")
             action_col.addWidget(ver_lbl, 0, Qt.AlignHCenter)
@@ -1149,9 +1221,12 @@ def run_gui_mode():
             self.lbl_uptime = QLabel("Uptime: 00:00:00")
             self.lbl_uptime.setStyleSheet("font-size: 10px;")
             action_col.addWidget(self.lbl_uptime, 0, Qt.AlignHCenter)
-            controls_layout.addLayout(action_col)
+            action_col.addStretch()
+            server_layout.addLayout(action_col, 1)
+            top_row.addWidget(server_box, 1)
 
-            main.addWidget(controls)
+            main.addLayout(top_row)
+            self._update_security_status()
 
             self.console = QPlainTextEdit()
             self.console.setReadOnly(True)
@@ -1223,6 +1298,8 @@ def run_gui_mode():
 
         def start_server(self):
             self.save()
+            if not self._run_security_precheck():
+                return
             self.btn_start.setEnabled(False)
             self.btn_stop.setEnabled(True)
             self.core.start_server_sequence()
@@ -1317,6 +1394,176 @@ def run_gui_mode():
             self.cb_check_upd.setChecked(not self.cb_mod_no_upd.isChecked())
             self.cb_check_upd.blockSignals(False)
             self.save()
+
+        def _server_properties_path(self):
+            return os.path.join(BASE_DIR, "server.properties")
+
+        def _read_server_properties(self):
+            props = {}
+            path = self._server_properties_path()
+            if not os.path.exists(path):
+                return props
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        s = line.strip()
+                        if not s or s.startswith("#") or "=" not in s:
+                            continue
+                        k, v = s.split("=", 1)
+                        props[k.strip()] = v.strip()
+            except Exception:
+                pass
+            return props
+
+        def _write_server_property(self, key, value):
+            path = self._server_properties_path()
+            lines = []
+            found = False
+            try:
+                if os.path.exists(path):
+                    with open(path, "r", encoding="utf-8") as f:
+                        for raw in f:
+                            if raw.strip().startswith("#") or "=" not in raw:
+                                lines.append(raw)
+                                continue
+                            k = raw.split("=", 1)[0].strip()
+                            if k == key:
+                                lines.append(f"{key}={value}\n")
+                                found = True
+                            else:
+                                lines.append(raw)
+                if not found:
+                    lines.append(f"{key}={value}\n")
+                with open(path, "w", encoding="utf-8") as f:
+                    f.writelines(lines)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed writing server.properties: {e}")
+
+        def _get_whitelist_count(self):
+            path = os.path.join(BASE_DIR, "whitelist.json")
+            if not os.path.exists(path):
+                return 0
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                return len(data) if isinstance(data, list) else 0
+            except Exception:
+                return 0
+
+        def _update_security_status(self):
+            props = self._read_server_properties()
+            online_mode = props.get("online-mode", "true").lower() == "true"
+            whitelist_enabled = props.get("white-list", "false").lower() == "true"
+
+            self.cb_online_mode.blockSignals(True)
+            self.cb_whitelist.blockSignals(True)
+            self.cb_online_mode.setChecked(online_mode)
+            self.cb_whitelist.setChecked(whitelist_enabled)
+            self.cb_online_mode.blockSignals(False)
+            self.cb_whitelist.blockSignals(False)
+
+            self.lbl_whitelist_count.setText(f"{self._get_whitelist_count()} players")
+            self.lbl_online_warn.setVisible(not online_mode)
+
+            if online_mode and whitelist_enabled:
+                self.lbl_security_status.setText("Secure")
+                self.lbl_security_status.setStyleSheet("color: #43a047; font-weight: bold;")
+                self.lbl_security_status.setToolTip("Online mode and whitelist are enabled")
+            elif online_mode or whitelist_enabled:
+                self.lbl_security_status.setText("Warning")
+                self.lbl_security_status.setStyleSheet("color: #f9a825; font-weight: bold;")
+                self.lbl_security_status.setToolTip("Enable both online mode and whitelist")
+            else:
+                self.lbl_security_status.setText("Danger")
+                self.lbl_security_status.setStyleSheet("color: #e53935; font-weight: bold;")
+                self.lbl_security_status.setToolTip("Server is vulnerable to griefing")
+
+        def _on_online_mode_toggled(self):
+            self._write_server_property("online-mode", "true" if self.cb_online_mode.isChecked() else "false")
+            self._update_security_status()
+
+        def _on_whitelist_toggled(self):
+            self._write_server_property("white-list", "true" if self.cb_whitelist.isChecked() else "false")
+            self._update_security_status()
+
+        def _read_whitelist_entries(self):
+            path = os.path.join(BASE_DIR, "whitelist.json")
+            if not os.path.exists(path):
+                return []
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, list):
+                    return [e for e in data if isinstance(e, dict)]
+            except Exception:
+                pass
+            return []
+
+        def _show_whitelist_dialog(self):
+            entries = self._read_whitelist_entries()
+            names = [e.get("name", "?") for e in entries if e.get("name")]
+            msg = "\n".join(names) if names else "Whitelist is currently empty."
+            QMessageBox.information(self, "Whitelist", msg)
+
+        def _show_restore_backups(self):
+            if not os.path.exists(BACKUP_DIR):
+                QMessageBox.information(self, "Restore", "No backups directory found.")
+                return
+            backups = sorted(
+                [f for f in os.listdir(BACKUP_DIR) if f.startswith("world_") and f.endswith(".zip")],
+                reverse=True,
+            )
+            if not backups:
+                QMessageBox.information(self, "Restore", "No world backups found.")
+                return
+            choice, ok = QInputDialog.getItem(self, "Restore Backup", "Choose backup:", backups, 0, False)
+            if not ok or not choice:
+                return
+            archive = os.path.join(BACKUP_DIR, choice)
+            if not os.path.exists(archive):
+                QMessageBox.warning(self, "Restore", "Selected backup no longer exists.")
+                return
+            if self.core.server_process and self.core.server_process.poll() is None:
+                QMessageBox.warning(self, "Restore", "Stop the server before restoring backups.")
+                return
+            try:
+                if os.path.exists(WORLD_DIR):
+                    ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                    shutil.move(WORLD_DIR, f"{WORLD_DIR}_pre_restore_{ts}")
+                with zipfile.ZipFile(archive, "r") as zf:
+                    zf.extractall(BASE_DIR)
+                QMessageBox.information(self, "Restore", f"Restored from {choice}")
+            except Exception as e:
+                QMessageBox.critical(self, "Restore", f"Restore failed: {e}")
+
+        def _run_security_precheck(self):
+            props = self._read_server_properties()
+            online_mode = props.get("online-mode", "true").lower() == "true"
+            whitelist_enabled = props.get("white-list", "false").lower() == "true"
+            if online_mode and whitelist_enabled:
+                return True
+
+            msg = (
+                "Security protections are not fully enabled.\n\n"
+                f"Online mode: {'ON' if online_mode else 'OFF'}\n"
+                f"Whitelist: {'ON' if whitelist_enabled else 'OFF'}\n\n"
+                "Choose Yes to enable both and start.\n"
+                "Choose No to start anyway."
+            )
+            reply = QMessageBox.question(
+                self,
+                "Security Warning",
+                msg,
+                QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
+                QMessageBox.Yes,
+            )
+            if reply == QMessageBox.Cancel:
+                return False
+            if reply == QMessageBox.Yes:
+                self._write_server_property("online-mode", "true")
+                self._write_server_property("white-list", "true")
+                self._update_security_status()
+            return True
 
         def update_stats(self, status):
             def apply():
