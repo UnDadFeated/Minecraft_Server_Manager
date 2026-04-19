@@ -1063,7 +1063,7 @@ def run_gui_mode():
             backup_grid = QGridLayout()
             backup_grid.setHorizontalSpacing(4)
             backup_grid.setVerticalSpacing(2)
-            backup_grid.addWidget(QLabel("Max"), 0, 0)
+            backup_grid.addWidget(QLabel("Max backups"), 0, 0)
             self.entry_max_backups = QLineEdit()
             self.entry_max_backups.setMaximumWidth(40)
             self.entry_max_backups.setText(str(self.config.get("max_backups", 3)))
