@@ -1,6 +1,6 @@
 # Changelog
 
-## 5.1.1 (2026-05-22)
+## 5.2.0 (2026-05-22)
 
 - **fix:** Point auto-updater GitHub URL to `main` branch instead of legacy `master` branch.
 - **fix:** Remove mutual exclusivity between "Check for Server Updates" and "Skip if Modded" GUI checkboxes.

@@ -58,7 +58,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "5.1.1"
+__version__ = "5.2.0"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
