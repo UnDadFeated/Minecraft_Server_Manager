@@ -58,7 +58,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "5.1.0"
+__version__ = "5.1.1"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -241,7 +241,7 @@ def validate_config(config):
         config["server_memory"] = mem.upper()
 
     try:
-        float(config.get("restart_interval", 12))
+        config["restart_interval"] = float(config.get("restart_interval", 12))
     except ValueError:
         print("WARNING: Invalid restart_interval. Reverting to 12.0.")
         config["restart_interval"] = 12.0
@@ -452,7 +452,7 @@ class MinecraftUpdaterCore:
             return False
 
         ts = int(time.time())
-        MANAGER_URL = f"https://raw.githubusercontent.com/UnDadFeated/Minecraft_Server_Manager/master/mcsm.pyw?t={ts}"
+        MANAGER_URL = f"https://raw.githubusercontent.com/UnDadFeated/Minecraft_Server_Manager/main/mcsm.pyw?t={ts}"
         try:
             req = urllib.request.Request(MANAGER_URL, headers={'User-Agent': 'MinecraftManagerUpdater'})
             with urllib.request.urlopen(req, timeout=15) as response:
@@ -1043,11 +1043,11 @@ def run_gui_mode():
             add_section_title(config_col1, "Updates")
             self.cb_check_upd = QCheckBox("Check for Server Updates")
             self.cb_check_upd.setChecked(self.config.get("check_updates", True))
-            self.cb_check_upd.stateChanged.connect(self._on_check_updates_toggled)
+            self.cb_check_upd.stateChanged.connect(self.save)
             config_col1.addWidget(self.cb_check_upd)
             self.cb_mod_no_upd = QCheckBox("Skip if Modded")
-            self.cb_mod_no_upd.setChecked(not self.config.get("check_updates", True))
-            self.cb_mod_no_upd.stateChanged.connect(self._on_mod_no_upd_toggled)
+            self.cb_mod_no_upd.setChecked(self.config.get("modded_do_not_update", True))
+            self.cb_mod_no_upd.stateChanged.connect(self.save)
             config_col1.addWidget(self.cb_mod_no_upd)
             self.cb_snapshot = QCheckBox("Use Latest Snapshots")
             self.cb_snapshot.setChecked(self.config.get("update_to_snapshot", False))
@@ -1383,17 +1383,7 @@ def run_gui_mode():
                 self.lbl_cpu.setText("CPU: N/A")
                 self.lbl_ram.setText("RAM: N/A")
 
-        def _on_check_updates_toggled(self):
-            self.cb_mod_no_upd.blockSignals(True)
-            self.cb_mod_no_upd.setChecked(not self.cb_check_upd.isChecked())
-            self.cb_mod_no_upd.blockSignals(False)
-            self.save()
 
-        def _on_mod_no_upd_toggled(self):
-            self.cb_check_upd.blockSignals(True)
-            self.cb_check_upd.setChecked(not self.cb_mod_no_upd.isChecked())
-            self.cb_check_upd.blockSignals(False)
-            self.save()
 
         def _server_properties_path(self):
             return os.path.join(BASE_DIR, "server.properties")
@@ -1531,7 +1521,7 @@ def run_gui_mode():
                     ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                     shutil.move(WORLD_DIR, f"{WORLD_DIR}_pre_restore_{ts}")
                 with zipfile.ZipFile(archive, "r") as zf:
-                    zf.extractall(BASE_DIR)
+                    zf.extractall(os.path.join(BASE_DIR, WORLD_DIR))
                 QMessageBox.information(self, "Restore", f"Restored from {choice}")
             except Exception as e:
                 QMessageBox.critical(self, "Restore", f"Restore failed: {e}")
