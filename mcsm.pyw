@@ -58,7 +58,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "5.2.0"
+__version__ = "5.3.0"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -246,6 +246,10 @@ def validate_config(config):
         print("WARNING: Invalid restart_interval. Reverting to 12.0.")
         config["restart_interval"] = 12.0
 
+    if "auto_start_system" not in config:
+        config["auto_start_system"] = bool(config.get("start_with_windows", False))
+    config["auto_start_system"] = bool(config.get("auto_start_system", False))
+
     return config
 
 def load_config():
@@ -269,6 +273,7 @@ def load_config():
         "server_memory": "4G",
         "max_backups": 3,
         "manager_auto_update": True,
+        "auto_start_system": False,
         "start_with_windows": False
     }
     if os.path.exists(CONFIG_FILE):
@@ -352,14 +357,14 @@ class MinecraftUpdaterCore:
         self.discord_bot = MinecraftBot(self)
 
         @self.discord_bot.command(name="status")
-        async def status(ctx):
+        async def status_cmd(ctx):
             if self.server_process:
                 await ctx.send(f"✅ Server is **Running** (PID: {self.server_process.pid})")
             else:
                 await ctx.send("🔴 Server is **Stopped**")
 
         @self.discord_bot.command(name="start")
-        async def start_server_bot(ctx):
+        async def start_cmd(ctx):
             if self.server_process:
                 await ctx.send("Server is already running.")
             else:
@@ -367,7 +372,7 @@ class MinecraftUpdaterCore:
                 self.start_server_sequence()
 
         @self.discord_bot.command(name="stop")
-        async def stop_server_bot(ctx):
+        async def stop_cmd(ctx):
             if self.server_process:
                 await ctx.send("🛑 Stopping server...")
                 self.stop_server()
@@ -375,7 +380,7 @@ class MinecraftUpdaterCore:
                 await ctx.send("Server is already stopped.")
         
         @self.discord_bot.command(name="restart")
-        async def restart_server_bot(ctx):
+        async def restart_cmd(ctx):
             await ctx.send("🔄 Restarting server...")
             self.stop_server()
             t = threading.Timer(5.0, self.start_server_sequence)
@@ -890,13 +895,44 @@ WantedBy=multi-user.target
         print(f"Failed to install service: {e}")
 
 def enable_autostart():
-    """Enables auto-start for the current user (Linux Desktop)."""
+    """Enables auto-start for the current user (Linux Desktop/macOS LaunchAgent)."""
     if IS_WINDOWS:
-        print("Use the GUI 'Start with Windows' option on Windows.")
+        print("Auto-start setup via CLI is Windows-only in GUI. Use the GUI 'Start with Windows' option.")
         return
     if IS_DARWIN:
-        print("macOS CLI autostart is not supported. Add to System Preferences > Login Items.")
+        plist_dir = os.path.expanduser("~/Library/LaunchAgents")
+        plist_path = os.path.join(plist_dir, "com.minecraft.manager.plist")
+        try:
+            if not os.path.exists(plist_dir):
+                os.makedirs(plist_dir)
+            script_path = os.path.abspath(__file__)
+            working_dir = os.path.dirname(script_path)
+            content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.minecraft.manager</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{sys.executable}</string>
+        <string>{script_path}</string>
+        <string>-nogui</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>WorkingDirectory</key>
+    <string>{working_dir}</string>
+</dict>
+</plist>
+"""
+            with open(plist_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            print(f"macOS LaunchAgent autostart entry created at {plist_path}")
+        except Exception as e:
+            print(f"Failed to enable macOS LaunchAgent autostart: {e}")
         return
+
     autostart_dir = os.path.expanduser("~/.config/autostart")
     if not os.path.exists(autostart_dir):
         os.makedirs(autostart_dir)
@@ -916,6 +952,41 @@ Terminal=false
         print(f"Auto-start entry created at {desktop_file}")
     except Exception as e:
         print(f"Failed to enable auto-start: {e}")
+
+def disable_autostart():
+    """Disables auto-start for the current user (Windows, Linux, macOS)."""
+    if IS_WINDOWS:
+        try:
+            import winreg
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_SET_VALUE)
+            try:
+                winreg.DeleteValue(key, "MinecraftServerManager")
+                print("Registry auto-start entry removed.")
+            except OSError:
+                print("Registry auto-start entry not found.")
+            winreg.CloseKey(key)
+        except Exception as e:
+            print(f"Failed to remove registry key: {e}")
+    elif IS_LINUX:
+        desktop_file = os.path.expanduser("~/.config/autostart/minecraft-manager.desktop")
+        try:
+            if os.path.exists(desktop_file):
+                os.remove(desktop_file)
+                print("Linux autostart entry removed.")
+            else:
+                print("Linux autostart entry not found.")
+        except Exception as e:
+            print(f"Failed to remove Linux auto-start entry: {e}")
+    elif IS_DARWIN:
+        plist_path = os.path.expanduser("~/Library/LaunchAgents/com.minecraft.manager.plist")
+        try:
+            if os.path.exists(plist_path):
+                os.remove(plist_path)
+                print("macOS LaunchAgent autostart entry removed.")
+            else:
+                print("macOS LaunchAgent autostart entry not found.")
+        except Exception as e:
+            print(f"Failed to remove macOS LaunchAgent: {e}")
 
 # --- Modes ---
 def run_console_mode():
@@ -940,9 +1011,10 @@ def run_gui_mode():
         QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
         QGroupBox, QLabel, QPushButton, QCheckBox, QLineEdit,
         QPlainTextEdit, QFrame, QMessageBox, QInputDialog,
+        QDialog, QListWidget, QListWidgetItem, QTextEdit,
     )
     from PySide6.QtCore import Qt, QTimer, QUrl
-    from PySide6.QtGui import QPalette, QColor, QFont, QTextCursor, QTextCharFormat, QImage, QPainter, QPen, QDesktopServices
+    from PySide6.QtGui import QPalette, QColor, QFont, QTextCursor, QTextCharFormat, QImage, QPainter, QPen, QDesktopServices, QTextDocument
 
     def ensure_check_icons():
         for path, fg in [(CHECK_WHITE_PNG, QColor(255, 255, 255)), (CHECK_BLACK_PNG, QColor(0, 0, 0))]:
@@ -958,6 +1030,108 @@ def run_gui_mode():
             p.drawLine(5, 10, 12, 2)
             p.end()
             img.save(path)
+
+    class BackupManagerDialog(QDialog):
+        def __init__(self, parent=None):
+            super().__init__(parent)
+            self.setWindowTitle("Manage Backups")
+            self.setMinimumSize(500, 400)
+            self.parent_gui = parent
+            
+            if parent:
+                self.setStyleSheet(parent.styleSheet())
+                
+            layout = QVBoxLayout(self)
+            
+            self.list_widget = QListWidget()
+            layout.addWidget(self.list_widget)
+            
+            btn_layout = QHBoxLayout()
+            self.btn_restore = QPushButton("Restore")
+            self.btn_delete = QPushButton("Delete")
+            self.btn_close = QPushButton("Close")
+            
+            btn_layout.addWidget(self.btn_restore)
+            btn_layout.addWidget(self.btn_delete)
+            btn_layout.addStretch()
+            btn_layout.addWidget(self.btn_close)
+            layout.addLayout(btn_layout)
+            
+            self.btn_restore.clicked.connect(self.restore_backup)
+            self.btn_delete.clicked.connect(self.delete_backup)
+            self.btn_close.clicked.connect(self.accept)
+            
+            self.refresh_list()
+            
+        def refresh_list(self):
+            self.list_widget.clear()
+            if not os.path.exists(BACKUP_DIR):
+                return
+            backups = sorted([f for f in os.listdir(BACKUP_DIR) if f.startswith("world_") and f.endswith(".zip")], reverse=True)
+            for b in backups:
+                path = os.path.join(BACKUP_DIR, b)
+                sz_mb = os.path.getsize(path) / (1024 * 1024)
+                self.list_widget.addItem(f"{b} ({sz_mb:.2f} MB)")
+                
+        def get_selected_backup(self):
+            item = self.list_widget.currentItem()
+            if not item:
+                return None
+            text = item.text()
+            filename = text.split(" (")[0]
+            return filename
+            
+        def restore_backup(self):
+            filename = self.get_selected_backup()
+            if not filename:
+                QMessageBox.warning(self, "Warning", "Please select a backup to restore.")
+                return
+                
+            if self.parent_gui and self.parent_gui.core.server_process and self.parent_gui.core.server_process.poll() is None:
+                QMessageBox.critical(self, "Error", "Cannot restore backup while the server is running. Please stop the server first.")
+                return
+                
+            reply = QMessageBox.question(
+                self, "Restore Backup",
+                f"Are you sure you want to restore '{filename}'?\nThis will overwrite the current world directory.",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+            if reply != QMessageBox.Yes:
+                return
+                
+            backup_path = os.path.join(BACKUP_DIR, filename)
+            try:
+                if os.path.exists(WORLD_DIR):
+                    ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                    shutil.move(WORLD_DIR, f"{WORLD_DIR}_pre_restore_{ts}")
+                os.makedirs(WORLD_DIR, exist_ok=True)
+                with zipfile.ZipFile(backup_path, 'r') as zip_ref:
+                    zip_ref.extractall(os.path.join(BASE_DIR, WORLD_DIR))
+                QMessageBox.information(self, "Success", "Backup restored successfully.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to restore backup: {e}")
+                
+        def delete_backup(self):
+            filename = self.get_selected_backup()
+            if not filename:
+                QMessageBox.warning(self, "Warning", "Please select a backup to delete.")
+                return
+                
+            reply = QMessageBox.question(
+                self, "Delete Backup",
+                f"Are you sure you want to permanently delete '{filename}'?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+            if reply != QMessageBox.Yes:
+                return
+                
+            backup_path = os.path.join(BACKUP_DIR, filename)
+            try:
+                os.remove(backup_path)
+                self.refresh_list()
+                QMessageBox.information(self, "Success", "Backup deleted.")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to delete backup: {e}")
 
     class MinecraftGUI(QMainWindow):
         def __init__(self):
@@ -1152,7 +1326,7 @@ def run_gui_mode():
             self.btn_whitelist.clicked.connect(self._show_whitelist_dialog)
             actions_row.addWidget(self.btn_whitelist)
             self.btn_restore_backup = QPushButton("Restore")
-            self.btn_restore_backup.clicked.connect(self._show_restore_backups)
+            self.btn_restore_backup.clicked.connect(self.show_backup_manager)
             actions_row.addWidget(self.btn_restore_backup)
             security_layout.addLayout(actions_row)
             security_layout.addStretch()
@@ -1180,6 +1354,12 @@ def run_gui_mode():
                 b.setFixedHeight(22)
                 b.clicked.connect(lambda checked, p=path: open_dir(p))
                 nav_col.addWidget(b)
+                if lbl == "Backups":
+                    btn_manage_backups = QPushButton("Manage")
+                    btn_manage_backups.setFixedWidth(70)
+                    btn_manage_backups.setFixedHeight(22)
+                    btn_manage_backups.clicked.connect(self.show_backup_manager)
+                    nav_col.addWidget(btn_manage_backups)
             nav_col.addSpacing(4)
             self.lbl_status = QLabel("Status: <span style='color:#e53935'>Stopped</span>")
             self.lbl_status.setObjectName("statusLbl")
@@ -1235,6 +1415,26 @@ def run_gui_mode():
             self.console.setMinimumHeight(300)
             main.addWidget(self.console, 1)
 
+            # Search bar
+            search_frame = QFrame()
+            search_frame.setObjectName("searchBar")
+            search_layout = QHBoxLayout(search_frame)
+            search_layout.setContentsMargins(4, 2, 4, 2)
+            search_layout.addWidget(QLabel("Find in Console:"))
+            self.entry_search = QLineEdit()
+            self.entry_search.setPlaceholderText("Type to search console logs...")
+            self.entry_search.textChanged.connect(self.search_console)
+            search_layout.addWidget(self.entry_search)
+            btn_prev = QPushButton("Previous")
+            btn_prev.setFixedHeight(22)
+            btn_prev.clicked.connect(self.search_prev)
+            btn_next = QPushButton("Next")
+            btn_next.setFixedHeight(22)
+            btn_next.clicked.connect(self.search_next)
+            search_layout.addWidget(btn_prev)
+            search_layout.addWidget(btn_next)
+            main.addWidget(search_frame)
+
             cmd_frame = QFrame()
             cmd_frame.setObjectName("cmdBar")
             cmd_layout = QHBoxLayout(cmd_frame)
@@ -1264,12 +1464,16 @@ def run_gui_mode():
             self.cb_mgr_update.setChecked(self.config.get("manager_auto_update", True))
             self.cb_mgr_update.stateChanged.connect(self.save)
             footer.addWidget(self.cb_mgr_update)
-            self.cb_start_win = QCheckBox("Start with Windows")
-            self.cb_start_win.setChecked(self.config.get("start_with_windows", False))
-            self.cb_start_win.stateChanged.connect(self.save_and_set_autostart)
-            if not IS_WINDOWS:
-                self.cb_start_win.setEnabled(False)
-            footer.addWidget(self.cb_start_win)
+            if IS_WINDOWS:
+                autostart_label = "Start with Windows"
+            elif IS_LINUX:
+                autostart_label = "Auto-Start with System"
+            else:
+                autostart_label = "Auto-Start at Login"
+            self.cb_autostart_system = QCheckBox(autostart_label)
+            self.cb_autostart_system.setChecked(self.config.get("auto_start_system", False))
+            self.cb_autostart_system.stateChanged.connect(self.save_and_set_autostart)
+            footer.addWidget(self.cb_autostart_system)
             footer.addStretch()
             footer.addWidget(btn_check)
             btn_coffee = QPushButton("☕ Support the Development")
@@ -1277,6 +1481,47 @@ def run_gui_mode():
             btn_coffee.clicked.connect(lambda: webbrowser.open("https://www.paypal.me/jscheema/5"))
             footer.addWidget(btn_coffee)
             main.addWidget(footer_frame)
+
+        def show_backup_manager(self):
+            dialog = BackupManagerDialog(self)
+            dialog.exec()
+
+        def search_console(self):
+            query = self.entry_search.text()
+            if not query:
+                self.console.setExtraSelections([])
+                return
+            
+            extra_selections = []
+            doc = self.console.document()
+            cursor = doc.find(query)
+            
+            fmt = QTextCharFormat()
+            fmt.setBackground(QColor("yellow"))
+            fmt.setForeground(QColor("black"))
+            
+            while not cursor.isNull():
+                selection = QTextEdit.ExtraSelection() if hasattr(QTextEdit, 'ExtraSelection') else None
+                if selection is None:
+                    # Fallback if needed, but PySide6's QTextEdit should have it
+                    from PySide6.QtWidgets import QTextEdit as QTE
+                    selection = QTE.ExtraSelection()
+                selection.format = fmt
+                selection.cursor = cursor
+                extra_selections.append(selection)
+                cursor = doc.find(query, cursor)
+                
+            self.console.setExtraSelections(extra_selections)
+
+        def search_next(self):
+            query = self.entry_search.text()
+            if query:
+                self.console.find(query)
+
+        def search_prev(self):
+            query = self.entry_search.text()
+            if query:
+                self.console.find(query, QTextDocument.FindBackward)
 
         def check_updates_ui(self):
             self.core.log("Checking for manager updates...")
@@ -1328,7 +1573,8 @@ def run_gui_mode():
                 "server_memory": self.entry_memory.text(),
                 "max_backups": int(mb) if mb.isdigit() else 3,
                 "manager_auto_update": self.cb_mgr_update.isChecked(),
-                "start_with_windows": self.cb_start_win.isChecked(),
+                "auto_start_system": self.cb_autostart_system.isChecked(),
+                "start_with_windows": self.cb_autostart_system.isChecked() if IS_WINDOWS else self.config.get("start_with_windows", False),
                 "dark_mode": self.is_dark,
             })
             self.core.config = self.config
@@ -1336,26 +1582,71 @@ def run_gui_mode():
 
         def save_and_set_autostart(self):
             self.save()
+            enabled = self.cb_autostart_system.isChecked()
             if IS_WINDOWS:
+                self._set_windows_autostart(enabled)
+            elif IS_LINUX:
+                self._set_linux_autostart(enabled)
+            elif IS_DARWIN:
+                self._set_macos_autostart(enabled)
+
+        def _set_windows_autostart(self, enabled):
+            try:
+                import winreg
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_SET_VALUE)
+                if enabled:
+                    script_path = os.path.abspath(sys.argv[0])
+                    python_exe = sys.executable
+                    if "pythonw.exe" not in python_exe.lower():
+                        pw = os.path.join(os.path.dirname(python_exe), "pythonw.exe")
+                        python_exe = pw if os.path.exists(pw) else pw
+                    cmd = f'"{python_exe}" "{script_path}" --startup-delay'
+                    winreg.SetValueEx(key, "MinecraftServerManager", 0, winreg.REG_SZ, cmd)
+                else:
+                    try:
+                        winreg.DeleteValue(key, "MinecraftServerManager")
+                    except OSError:
+                        pass
+                winreg.CloseKey(key)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to set registry key: {e}")
+
+        def _set_linux_autostart(self, enabled):
+            desktop_file = os.path.expanduser("~/.config/autostart/minecraft-manager.desktop")
+            if enabled:
+                enable_autostart()
+            else:
                 try:
-                    import winreg
-                    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_SET_VALUE)
-                    if self.cb_start_win.isChecked():
-                        script_path = os.path.abspath(sys.argv[0])
-                        python_exe = sys.executable
-                        if "pythonw.exe" not in python_exe.lower():
-                            pw = os.path.join(os.path.dirname(python_exe), "pythonw.exe")
-                            python_exe = pw if os.path.exists(pw) else pw
-                        cmd = f'"{python_exe}" "{script_path}" --startup-delay'
-                        winreg.SetValueEx(key, "MinecraftServerManager", 0, winreg.REG_SZ, cmd)
-                    else:
-                        try:
-                            winreg.DeleteValue(key, "MinecraftServerManager")
-                        except OSError:
-                            pass
-                    winreg.CloseKey(key)
+                    if os.path.exists(desktop_file):
+                        os.remove(desktop_file)
                 except Exception as e:
-                    QMessageBox.critical(self, "Error", f"Failed to set registry key: {e}")
+                    QMessageBox.critical(self, "Error", f"Failed to disable Linux auto-start: {e}")
+
+        def _set_macos_autostart(self, enabled):
+            app_name = "Minecraft Server Manager"
+            script_path = os.path.abspath(sys.argv[0])
+            python_exe = sys.executable
+            cmd = f'"{python_exe}" "{script_path}"'
+            if enabled:
+                script = (
+                    'tell application "System Events"\n'
+                    'if not (exists login item "' + app_name + '") then\n'
+                    'make login item at end with properties {name:"' + app_name + '", path:"' + cmd.replace('"', '\\"') + '", hidden:false}\n'
+                    'end if\n'
+                    'end tell'
+                )
+            else:
+                script = (
+                    'tell application "System Events"\n'
+                    'if exists login item "' + app_name + '" then\n'
+                    'delete login item "' + app_name + '"\n'
+                    'end if\n'
+                    'end tell'
+                )
+            try:
+                subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to update macOS login item: {e}")
 
         def _refresh_uptime(self):
             running = self.core.server_process is not None and self.core.server_process.poll() is None
@@ -1661,7 +1952,7 @@ def run_gui_mode():
             self.setPalette(p)
             qss = f"""
                 QMainWindow, QWidget {{ background: {bg}; }}
-                #footerBar, #cmdBar {{ background: {footer_bg}; }}
+                #footerBar, #cmdBar, #searchBar {{ background: {footer_bg}; }}
                 #footerBar QPushButton {{ font-size: 10px; padding: 2px 6px; min-height: 20px; }}
                 QCheckBox {{ color: {fg}; padding: 2px; background-color: transparent; }}
                 QCheckBox::indicator {{ background: {input_bg}; border: 1px solid {btn_border}; border-radius: 2px; width: 13px; height: 13px; }}
@@ -1728,7 +2019,8 @@ def print_help():
     print("\nCommand Line Options:")
     print("  -nogui             : Run in console-only mode (headless).")
     print("  -install-service   : (Linux) Installs systemd service.")
-    print("  -enable-autostart  : (Linux) Adds to desktop auto-start.")
+    print("  -enable-autostart  : (Linux/macOS) Adds to user autostart (desktop shortcut/LaunchAgent).")
+    print("  -disable-autostart : Removes from user autostart.")
     print("  -help, --help      : Show this help message.")
     print("\nConfiguration File:")
     print(f"  {abs_config_path}")
@@ -1768,6 +2060,10 @@ def main():
 
     if "-enable-autostart" in sys.argv:
         enable_autostart()
+        sys.exit(0)
+
+    if "-disable-autostart" in sys.argv:
+        disable_autostart()
         sys.exit(0)
 
     ok, err = _acquire_single_instance_lock()

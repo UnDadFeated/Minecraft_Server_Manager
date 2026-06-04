@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.3.0 (2026-06-04)
+
+- **feat:** Auto-start: Implement native macOS LaunchAgent autostart support via a user plist file. Adds `-disable-autostart` option.
+- **feat:** Requirements: Comment out optional `discord.py` package in requirements.txt.
+- **feat:** GUI: Add Find in Console log search and highlight utility (previous/next jumping, yellow selection).
+- **feat:** GUI: Add a new Backup Manager dialog to list, delete, and safely restore world backups.
+- **fix:** Discord Bot: Rename shadowed local coroutine commands (`status_cmd`, `start_cmd`, `stop_cmd`, `restart_cmd`) so the core server controls can be correctly called from Discord.
+
 ## 5.2.0 (2026-05-22)
 
 - **fix:** Point auto-updater GitHub URL to `main` branch instead of legacy `master` branch.
