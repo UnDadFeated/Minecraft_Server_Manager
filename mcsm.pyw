@@ -58,7 +58,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "5.3.1"
+__version__ = "5.3.2"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -451,9 +451,9 @@ class MinecraftUpdaterCore:
             self.log(f"Version check failed: {e}")
             return None, None
 
-    def check_self_update(self):
+    def check_self_update(self, force=False):
         """Checks the remote repo for a newer manager version. Returns True if update available and downloaded."""
-        if not self.config.get("manager_auto_update", True):
+        if not force and not self.config.get("manager_auto_update", True):
             return False
 
         ts = int(time.time())
@@ -473,10 +473,8 @@ class MinecraftUpdaterCore:
                 self.log("Manager is up to date.")
                 return False
             self.log(f"New manager version found ({remote_ver}). Downloading...")
-            script_ext = os.path.splitext(sys.argv[0])[1]
-            if script_ext not in [".py", ".pyw"]:
-                script_ext = ".py"
-            new_file = f"mcsm{script_ext}.new"
+            current_script = os.path.abspath(__file__)
+            new_file = current_script + ".new"
             with open(new_file, "w", encoding='utf-8') as f:
                 f.write(remote_content)
             self.log("File downloaded. Preparing installer...")
@@ -487,6 +485,8 @@ class MinecraftUpdaterCore:
 
     def run_update_installer(self):
         """Creates and runs a temporary script to replace the manager and restart. Waits for parent exit first."""
+        current_script = os.path.abspath(__file__)
+        new_script = current_script + ".new"
         args_repr = repr(sys.argv)
         installer_code = f'''
 import os
@@ -519,11 +519,8 @@ try:
     print("Updating files...")
     time.sleep(2)
 
-    script_ext = os.path.splitext({repr(sys.argv[0])})[1]
-    if script_ext not in [".py", ".pyw"]:
-        script_ext = ".py"
-    old_file = f"mcsm{{script_ext}}"
-    new_file = f"mcsm{{script_ext}}.new"
+    old_file = {repr(current_script)}
+    new_file = {repr(new_script)}
     if os.path.exists(new_file):
         if os.path.exists(old_file):
             os.remove(old_file)
@@ -1525,7 +1522,7 @@ def run_gui_mode():
 
         def check_updates_ui(self):
             self.core.log("Checking for manager updates...")
-            if self.core.check_self_update():
+            if self.core.check_self_update(force=True):
                 self.core.log("Manager update found. Restarting...")
                 self.core.stop_server()
                 def do_install():
@@ -2042,6 +2039,12 @@ def main():
     if os.path.exists("updater_installer.py"):
         try:
             os.remove("updater_installer.py")
+        except OSError:
+            pass
+    new_script_temp = os.path.abspath(__file__) + ".new"
+    if os.path.exists(new_script_temp):
+        try:
+            os.remove(new_script_temp)
         except OSError:
             pass
     for f in ["mcsm.py.new", "mcsm.pyw.new"]:

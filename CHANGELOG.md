@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.3.2 (2026-06-09)
+
+- **fix:** Updater: Use the exact absolute path of the script (`__file__`) for self-updating instead of assuming script names/extensions (`mcsm.py` or `mcsm.pyw`).
+- **fix:** GUI: Force update check when clicking the manual "Check for updates" button, bypassing the `manager_auto_update` config setting constraints.
+
 ## 5.3.1 (2026-06-09)
 
 - **feat:** GUI: Rename "Auto-Start" checkbox label to "Auto-Start Server" to clarify its purpose.
