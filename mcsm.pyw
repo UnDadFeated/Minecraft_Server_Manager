@@ -58,7 +58,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "5.3.2"
+__version__ = "5.3.3"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -869,7 +869,8 @@ def install_service():
     user = os.environ.get('SUDO_USER', 'root')
     content = f"""[Unit]
 Description=Minecraft Server Manager
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple

@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.3.3 (2026-06-09)
+
+- **fix:** Linux: Update systemd unit template to depend on `network-online.target` instead of `network.target` to ensure the manager and Minecraft server wait for a fully initialized network/DNS configuration before starting on boot.
+
 ## 5.3.2 (2026-06-09)
 
 - **fix:** Updater: Use the exact absolute path of the script (`__file__`) for self-updating instead of assuming script names/extensions (`mcsm.py` or `mcsm.pyw`).
