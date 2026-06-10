@@ -58,7 +58,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "5.3.3"
+__version__ = "5.3.4"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -66,12 +66,13 @@ MANIFEST_URL = "https://launchermeta.mojang.com/mc/game/version_manifest_v2.json
 IS_WINDOWS = platform.system() == "Windows"
 IS_DARWIN = platform.system() == "Darwin"
 IS_LINUX = platform.system() == "Linux"
-BACKUP_DIR = "world_backups"
-WORLD_DIR = "world"
-MODS_DIR = "mods"
 
 # Always resolve paths relative to the script's own directory.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BACKUP_DIR = os.path.join(BASE_DIR, "world_backups")
+WORLD_DIR = os.path.join(BASE_DIR, "world")
+MODS_DIR = os.path.join(BASE_DIR, "mods")
+
 CHECK_WHITE_PNG = os.path.join(BASE_DIR, ".check_white.png")
 CHECK_BLACK_PNG = os.path.join(BASE_DIR, ".check_black.png")
 LOG_FILE = os.path.join(BASE_DIR, "mcsm.log")
@@ -1104,7 +1105,7 @@ def run_gui_mode():
                     shutil.move(WORLD_DIR, f"{WORLD_DIR}_pre_restore_{ts}")
                 os.makedirs(WORLD_DIR, exist_ok=True)
                 with zipfile.ZipFile(backup_path, 'r') as zip_ref:
-                    zip_ref.extractall(os.path.join(BASE_DIR, WORLD_DIR))
+                    zip_ref.extractall(WORLD_DIR)
                 QMessageBox.information(self, "Success", "Backup restored successfully.")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to restore backup: {e}")
@@ -1810,7 +1811,7 @@ def run_gui_mode():
                     ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                     shutil.move(WORLD_DIR, f"{WORLD_DIR}_pre_restore_{ts}")
                 with zipfile.ZipFile(archive, "r") as zf:
-                    zf.extractall(os.path.join(BASE_DIR, WORLD_DIR))
+                    zf.extractall(WORLD_DIR)
                 QMessageBox.information(self, "Restore", f"Restored from {choice}")
             except Exception as e:
                 QMessageBox.critical(self, "Restore", f"Restore failed: {e}")
@@ -2028,7 +2029,47 @@ def print_help():
 # --- Main ---
 IS_PYTHONW = IS_WINDOWS and "pythonw" in sys.executable.lower()
 
+def check_and_ensure_pyw():
+    if not IS_WINDOWS:
+        return
+    
+    script_path = os.path.abspath(__file__)
+    if script_path.lower().endswith(".py"):
+        pyw_path = script_path[:-3] + ".pyw"
+        _debug("PYW_CHECK", f"Running as .py: {script_path}. Renaming to .pyw: {pyw_path}")
+        
+        try:
+            if os.path.exists(pyw_path):
+                try:
+                    os.remove(pyw_path)
+                except OSError:
+                    pass
+            os.rename(script_path, pyw_path)
+            _debug("PYW_CHECK", "Rename successful.")
+        except Exception as e:
+            _debug("PYW_CHECK", f"Rename failed: {e}")
+            if not os.path.exists(pyw_path):
+                return
+            
+        try:
+            python_exe = sys.executable
+            if "pythonw.exe" not in python_exe.lower():
+                dir_name = os.path.dirname(python_exe)
+                pw_candidate = os.path.join(dir_name, "pythonw.exe")
+                if os.path.exists(pw_candidate):
+                    python_exe = pw_candidate
+                else:
+                    python_exe = python_exe.replace("python.exe", "pythonw.exe").replace("python", "pythonw")
+            
+            _debug("PYW_CHECK", f"Restarting with: {[python_exe, pyw_path] + sys.argv[1:]}")
+            subprocess.Popen([python_exe, pyw_path] + sys.argv[1:], creationflags=CREATE_NO_WINDOW)
+            _debug("PYW_CHECK", "Exiting original process.")
+            os._exit(0)
+        except Exception as e:
+            _debug("PYW_CHECK", f"Restart failed: {e}")
+
 def main():
+    check_and_ensure_pyw()
     _debug("MAIN", "entering main()")
     os.chdir(BASE_DIR)
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.3.4 (2026-06-10)
+
+- **fix:** Windows/GUI: Ensure manager runs as `.pyw` to hide terminal. If running as `.py`, automatically rename it to `.pyw` and restart under `pythonw.exe`.
+- **fix:** Backup: Redefine `BACKUP_DIR`, `WORLD_DIR`, and `MODS_DIR` as absolute paths relative to `BASE_DIR` to ensure consistent paths and fix backup directory/restore path mismatches.
+
 ## 5.3.3 (2026-06-09)
 
 - **fix:** Linux: Update systemd unit template to depend on `network-online.target` instead of `network.target` to ensure the manager and Minecraft server wait for a fully initialized network/DNS configuration before starting on boot.
