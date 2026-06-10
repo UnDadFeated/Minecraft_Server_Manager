@@ -311,6 +311,7 @@ class MinecraftUpdaterCore:
         self.monitor_thread = None
         self.start_time = None
         self.discord_bot = None
+        self.update_via_git = False
 
         self._lifecycle_lock = threading.Lock()
         self._starting = False
@@ -453,9 +454,61 @@ class MinecraftUpdaterCore:
             return None, None
 
     def check_self_update(self, force=False):
-        """Checks the remote repo for a newer manager version. Returns True if update available and downloaded."""
+        """Checks the remote repo for a newer manager version. Returns True if update available."""
         if not force and not self.config.get("manager_auto_update", True):
             return False
+
+        self.update_via_git = False
+        is_git_repo = os.path.exists(os.path.join(BASE_DIR, ".git"))
+        git_available = False
+        if is_git_repo:
+            try:
+                kwargs = {}
+                if IS_WINDOWS:
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    startupinfo.wShowWindow = subprocess.SW_HIDE
+                    kwargs["startupinfo"] = startupinfo
+                    kwargs["creationflags"] = CREATE_NO_WINDOW
+                r = subprocess.run(["git", "--version"], capture_output=True, **kwargs)
+                git_available = (r.returncode == 0)
+            except Exception:
+                pass
+
+        if is_git_repo and git_available:
+            self.log("Git repository detected. Checking for updates via Git...")
+            try:
+                kwargs = {}
+                if IS_WINDOWS:
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    startupinfo.wShowWindow = subprocess.SW_HIDE
+                    kwargs["startupinfo"] = startupinfo
+                    kwargs["creationflags"] = CREATE_NO_WINDOW
+                
+                # Fetch upstream changes
+                fetch_res = subprocess.run(["git", "fetch"], capture_output=True, text=True, cwd=BASE_DIR, **kwargs)
+                if fetch_res.returncode != 0:
+                    self.log(f"Git fetch failed: {fetch_res.stderr.strip()}")
+                    return False
+                
+                # Compare HEAD with upstream branch
+                status_res = subprocess.run(["git", "rev-list", "--count", "HEAD..@{u}"], capture_output=True, text=True, cwd=BASE_DIR, **kwargs)
+                if status_res.returncode == 0:
+                    behind_count = int(status_res.stdout.strip())
+                    if behind_count > 0:
+                        self.log(f"Manager is behind upstream by {behind_count} commit(s). Git update available.")
+                        self.update_via_git = True
+                        return True
+                    else:
+                        self.log("Manager is up to date (Git).")
+                        return False
+                else:
+                    self.log(f"Git status check failed: {status_res.stderr.strip()}")
+                    return False
+            except Exception as e:
+                self.log(f"Failed to check Git updates: {e}")
+                return False
 
         ts = int(time.time())
         MANAGER_URL = f"https://raw.githubusercontent.com/UnDadFeated/Minecraft_Server_Manager/main/mcsm.pyw?t={ts}"
@@ -489,7 +542,10 @@ class MinecraftUpdaterCore:
         current_script = os.path.abspath(__file__)
         new_script = current_script + ".new"
         args_repr = repr(sys.argv)
-        installer_code = f'''
+        use_git = getattr(self, "update_via_git", False)
+
+        if use_git:
+            installer_code = f'''
 import os
 import time
 import sys
@@ -501,7 +557,139 @@ print(f"Waiting for parent process {{pid}} to close...")
 def is_pid_running(p):
     try:
         if os.name == 'nt':
-            output = subprocess.check_output(f'tasklist /FI "PID eq {{p}}"', shell=True, creationflags={CREATE_NO_WINDOW}).decode()
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            output = subprocess.check_output(
+                f'tasklist /FI "PID eq {{p}}"', 
+                shell=True, 
+                creationflags=0x08000000,
+                startupinfo=startupinfo
+            ).decode()
+            return str(p) in output
+        else:
+            os.kill(p, 0)
+            return True
+    except Exception:
+        return False
+
+try:
+    start_wait = time.time()
+    while is_pid_running(pid):
+        if time.time() - start_wait > 30:
+            print("Timed out waiting for parent to close. Proceeding with update...")
+            break
+        time.sleep(1)
+
+    print("Updating files via Git...")
+    time.sleep(2)
+
+    working_dir = {repr(BASE_DIR)}
+    current_script = {repr(current_script)}
+    
+    pyw_path = current_script
+    py_path = current_script[:-1] if current_script.lower().endswith(".pyw") else current_script
+    
+    if pyw_path.lower().endswith(".pyw") and os.path.exists(pyw_path) and not os.path.exists(py_path):
+        is_tracked = False
+        try:
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            r = subprocess.run(
+                ["git", "ls-files", os.path.basename(py_path)], 
+                capture_output=True, 
+                text=True, 
+                cwd=working_dir,
+                creationflags=0x08000000,
+                startupinfo=startupinfo
+            )
+            if r.returncode == 0 and os.path.basename(py_path) in r.stdout:
+                is_tracked = True
+        except Exception:
+            pass
+            
+        if is_tracked:
+            print(f"Renaming {{os.path.basename(pyw_path)}} back to {{os.path.basename(py_path)}} for git update...")
+            try:
+                os.rename(pyw_path, py_path)
+            except Exception as re_err:
+                print(f"Failed to rename: {{re_err}}")
+
+    print("Running git pull...")
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    startupinfo.wShowWindow = subprocess.SW_HIDE
+    pull_res = subprocess.run(
+        ["git", "pull"], 
+        capture_output=True, 
+        text=True, 
+        cwd=working_dir,
+        creationflags=0x08000000,
+        startupinfo=startupinfo
+    )
+    if pull_res.returncode == 0:
+        print("Git pull successful.")
+    else:
+        print(f"Git pull failed: {{pull_res.stderr}}")
+        if pyw_path.lower().endswith(".pyw") and os.path.exists(py_path) and not os.path.exists(pyw_path):
+            try:
+                os.rename(py_path, pyw_path)
+            except Exception:
+                pass
+
+    restart_script = current_script
+    if pyw_path.lower().endswith(".pyw"):
+        if os.path.exists(pyw_path):
+            restart_script = pyw_path
+        elif os.path.exists(py_path):
+            restart_script = py_path
+
+    print(f"Restarting manager: {{restart_script}}")
+    
+    args = {args_repr}
+    if args and args[0].lower().endswith((".py", ".pyw")):
+        args[0] = restart_script
+
+    if "pythonw" in sys.executable.lower() or restart_script.lower().endswith(".pyw"):
+        python_exe = sys.executable
+        if "pythonw" not in python_exe.lower() and os.name == 'nt':
+            pw = os.path.join(os.path.dirname(python_exe), "pythonw.exe")
+            if os.path.exists(pw):
+                python_exe = pw
+            else:
+                python_exe = python_exe.replace("python.exe", "pythonw.exe").replace("python", "pythonw")
+        
+        subprocess.Popen([python_exe] + args, creationflags=0x08000000)
+    else:
+        subprocess.Popen([sys.executable] + args)
+except Exception as e:
+    print(f"Update failed: {{e}}")
+    if "pythonw" not in sys.executable.lower():
+        input("Press Enter to exit...")
+'''
+        else:
+            installer_code = f'''
+import os
+import time
+import sys
+import subprocess
+
+pid = {os.getpid()}
+print(f"Waiting for parent process {{pid}} to close...")
+
+def is_pid_running(p):
+    try:
+        if os.name == 'nt':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            output = subprocess.check_output(
+                f'tasklist /FI "PID eq {{p}}"', 
+                shell=True, 
+                creationflags=0x08000000,
+                startupinfo=startupinfo
+            ).decode()
             return str(p) in output
         else:
             os.kill(p, 0)
@@ -530,7 +718,7 @@ try:
 
     print("Files updated. Restarting manager...")
     if "pythonw" in sys.executable.lower():
-        subprocess.Popen([sys.executable] + {args_repr}, creationflags={CREATE_NO_WINDOW})
+        subprocess.Popen([sys.executable] + {args_repr}, creationflags=0x08000000)
     else:
         subprocess.Popen([sys.executable] + {args_repr})
 except Exception as e:
