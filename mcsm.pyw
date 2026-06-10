@@ -58,7 +58,7 @@ if platform.system() == "Windows":
 else:
     CREATE_NO_WINDOW = 0
 
-__version__ = "5.3.0"
+__version__ = "5.3.1"
 
 JAVA_VERSION_REQ = 21  # Minecraft 1.17+ requires 16/17, 1.20.5+ requires 21
 SERVER_JAR = "minecraft_server.jar"
@@ -1154,7 +1154,7 @@ def run_gui_mode():
             self.security_timer.timeout.connect(self._update_security_status)
             self.security_timer.start(15000)
             if self.config.get("auto_start", False):
-                QTimer.singleShot(1000, self.start_server)
+                QTimer.singleShot(1000, lambda: self.start_server(is_autostart=True))
 
         def setup_ui(self):
             cw = QWidget()
@@ -1193,7 +1193,7 @@ def run_gui_mode():
             self.cb_logging.setChecked(self.config.get("enable_logging", True))
             self.cb_logging.stateChanged.connect(self.save)
             config_col1.addWidget(self.cb_logging)
-            self.cb_autostart = QCheckBox("Auto-Start")
+            self.cb_autostart = QCheckBox("Auto-Start Server")
             self.cb_autostart.setChecked(self.config.get("auto_start", False))
             self.cb_autostart.stateChanged.connect(self.save)
             config_col1.addWidget(self.cb_autostart)
@@ -1541,9 +1541,9 @@ def run_gui_mode():
                 self.entry_cmd.clear()
                 self.entry_cmd.setFocus()
 
-        def start_server(self):
+        def start_server(self, checked=False, is_autostart=False):
             self.save()
-            if not self._run_security_precheck():
+            if not is_autostart and not self._run_security_precheck():
                 return
             self.btn_start.setEnabled(False)
             self.btn_stop.setEnabled(True)

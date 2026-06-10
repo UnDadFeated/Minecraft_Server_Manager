@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.3.1 (2026-06-09)
+
+- **feat:** GUI: Rename "Auto-Start" checkbox label to "Auto-Start Server" to clarify its purpose.
+- **fix:** Linux/GUI: Skip the blocking security precheck dialog on autostart, enabling the Minecraft server to start unattended on reboot (similar to Hytale).
+
 ## 5.3.0 (2026-06-04)
 
 - **feat:** Auto-start: Implement native macOS LaunchAgent autostart support via a user plist file. Adds `-disable-autostart` option.
