@@ -638,12 +638,20 @@ try:
             except Exception:
                 pass
 
-    restart_script = current_script
-    if pyw_path.lower().endswith(".pyw"):
+    # Post-pull check: if py_path exists, rename it to pyw_path so it is always a .pyw file
+    if os.path.exists(py_path) and py_path != pyw_path:
+        print(f"Post-update: Renaming {{os.path.basename(py_path)}} to {{os.path.basename(pyw_path)}}...")
         if os.path.exists(pyw_path):
-            restart_script = pyw_path
-        elif os.path.exists(py_path):
-            restart_script = py_path
+            try:
+                os.remove(pyw_path)
+            except OSError:
+                pass
+        try:
+            os.rename(py_path, pyw_path)
+        except Exception as re_err:
+            print(f"Failed to rename to .pyw: {{re_err}}")
+
+    restart_script = pyw_path if os.path.exists(pyw_path) else py_path
 
     print(f"Restarting manager: {{restart_script}}")
     
