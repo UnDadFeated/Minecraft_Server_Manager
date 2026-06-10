@@ -4,6 +4,7 @@
 
 - **fix:** Windows/GUI: Ensure manager runs as `.pyw` to hide terminal. If running as `.py`, automatically rename it to `.pyw` and restart under `pythonw.exe`.
 - **fix:** Backup: Redefine `BACKUP_DIR`, `WORLD_DIR`, and `MODS_DIR` as absolute paths relative to `BASE_DIR` to ensure consistent paths and fix backup directory/restore path mismatches.
+- **feat:** Git/Update: Smartly rename the local `.pyw` file back to `.py` during startup self-updates inside a git repository clone, allowing `git pull` to apply remote updates without untracked file conflicts, then restart the updated `.pyw` manager.
 
 ## 5.3.3 (2026-06-09)
 
