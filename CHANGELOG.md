@@ -1,5 +1,9 @@
 # Changelog
 
+## 5.3.5 (2026-07-09)
+
+- **fix:** Locking: Prevent PID reuse conflicts (e.g., from other scripts like Hytale's `hsm.pyw` or unrelated processes reclaiming the same PID). The single-instance lock file now records both the PID and the absolute script path, and `psutil` checks if the running process command-line actually references this script, preventing stale locks from blocking unattended start on reboot.
+
 ## 5.3.4 (2026-06-10)
 
 - **fix:** Windows/GUI: Ensure manager runs as `.pyw` to hide terminal. If running as `.py`, automatically rename it to `.pyw` and restart under `pythonw.exe`.
